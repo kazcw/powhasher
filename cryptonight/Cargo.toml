@@ -1,0 +1,30 @@
+[package]
+name = "cryptonight"
+version = "0.1.0"
+authors = ["Kaz Wesley <keziahw@gmail.com>"]
+license = "MIT/Apache-2.0"
+
+[dependencies]
+groestl-aesni = "0.1.1"
+jh-x86_64 = "0.1.0"
+libc = "0.2.33"
+tiny-keccak = "= 1.4.0"
+stdsimd = "0.0.3"
+
+[dependencies.blake]
+version = "0.1.0"
+block-buffer = { git = "git://github.com/kazcw/RustCrypto-hashes", branch = "master" }
+
+[dependencies.skein]
+version = "0.2.1"
+block-buffer = { git = "git://github.com/kazcw/RustCrypto-hashes", branch = "master" }
+
+[dev-dependencies]
+hex_literals = "0.1.6"
+
+[profile.test]
+opt-level = 2
+
+[patch.crates-io]
+threefish = { git = "git://github.com/kazcw/RustCrypto-block-ciphers", branch = "threefish" }
+block-buffer = { git = "git://github.com/RustCrypto/utils", rev = "82f3e1b8" }

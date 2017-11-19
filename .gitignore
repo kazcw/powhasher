@@ -1,0 +1,7 @@
+
+/target/
+/cryptonight/target/
+/cryptonight/Cargo.lock
+/cryptonight/groestl/target/
+/cryptonight/groestl/Cargo.lock
+**/*.rs.bk

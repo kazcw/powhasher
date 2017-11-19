@@ -1,0 +1,22 @@
+{
+	"pool": {
+		"address": "127.0.0.1:3333",
+		"login": "",
+		"pass": "x",
+		"keepalive_s": 60
+	},
+	"workers": [
+        { "cpu": 0, "hasher": { "cn-cpu-aesni": { "multi": 1 } } },
+        { "cpu": 1, "hasher": { "cn-cpu-aesni": { "multi": 1 } } },
+        { "cpu": 2, "hasher": { "cn-cpu-aesni": { "multi": 1 } } },
+        { "cpu": 3, "hasher": { "cn-cpu-aesni": { "multi": 1 } } },
+        { "cpu": 4, "hasher": { "cn-cpu-aesni": { "multi": 1 } } },
+        { "cpu": 5, "hasher": { "cn-cpu-aesni": { "multi": 1 } } },
+        { "cpu": 6, "hasher": { "cn-cpu-aesni": { "multi": 1 } } },
+        { "cpu": 7, "hasher": { "cn-cpu-aesni": { "multi": 1 } } },
+        { "cpu": 8, "hasher": { "cn-cpu-aesni": { "multi": 1 } } },
+        { "cpu": 9, "hasher": { "cn-cpu-aesni": { "multi": 1 } } },
+        { "cpu": 10, "hasher": { "cn-cpu-aesni": { "multi": 1 } } },
+        { "cpu": 11, "hasher": { "cn-cpu-aesni": { "multi": 1 } } }
+    ]
+}
