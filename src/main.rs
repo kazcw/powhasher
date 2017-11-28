@@ -32,6 +32,7 @@ extern crate typenum;
 extern crate cryptonight;
 
 use std::fs::File;
+use std::mem;
 use std::thread;
 use std::time::Duration;
 
@@ -74,22 +75,34 @@ fn main() {
     let workers = Workgroup::new(worksource, hasher_builder);
     let workerstats = workers.run_threads(cfg.workers);
 
+    let mut prev_stats: Vec<_> = workerstats.iter().map(|w| w.get()).collect();
+    let mut new_stats = Vec::new();
     loop {
-        println!("worker stats:");
-        let mut hashes = 0;
+        println!("worker stats (since last):");
+        let mut cur_hashes = 0;
+        let mut cur_dur = Duration::new(0, 0);
+        let mut total_hashes = 0;
         let mut total_dur = Duration::new(0, 0);
-        for (i, w) in workerstats.iter().enumerate() {
-            let w = w.get();
-            let rate = (w.hashes as f32)
-                / ((w.runtime.as_secs() as f32)
-                    + (w.runtime.subsec_nanos() as f32) / 1_000_000_000.0);
+        new_stats.clear();
+        new_stats.extend(workerstats.iter().map(|w| w.get()));
+        for (i, (new, old)) in new_stats.iter().zip(&prev_stats).enumerate() {
+            let hashes = new.hashes - old.hashes;
+            let runtime = new.runtime.checked_sub(old.runtime).unwrap();
+            let rate = (hashes as f32)
+                / ((runtime.as_secs() as f32) + (runtime.subsec_nanos() as f32) / 1_000_000_000.0);
             println!("\t{}: {} H/s", i, rate);
-            hashes += w.hashes;
-            total_dur = total_dur.checked_add(w.runtime).unwrap();
+            cur_hashes += hashes;
+            cur_dur = cur_dur.checked_add(runtime).unwrap();
+            total_hashes += new.hashes;
+            total_dur = total_dur.checked_add(new.runtime).unwrap();
         }
-        let total_rate = ((workerstats.len() * hashes) as f32)
+        let cur_rate = ((workerstats.len() * cur_hashes) as f32)
+            / ((cur_dur.as_secs() as f32) + (cur_dur.subsec_nanos() as f32) / 1_000_000_000.0);
+        println!("\ttotal (since last): {} H/s", cur_rate);
+        let total_rate = ((workerstats.len() * total_hashes) as f32)
             / ((total_dur.as_secs() as f32) + (total_dur.subsec_nanos() as f32) / 1_000_000_000.0);
-        println!("\ttotal: {} H/s", total_rate);
+        println!("\ttotal (all time): {} H/s", total_rate);
+        mem::swap(&mut prev_stats, &mut new_stats);
 
         println!("pool stats: {:?}", poolstats.get());
 

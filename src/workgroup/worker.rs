@@ -31,6 +31,7 @@ impl Worker {
         core_affinity::set_for_current(core_ids[cfg.cpu.0 as usize]);
         let base_nonce = cfg.cpu.into();
         let mut hasher = hasher_builder.into_hasher(&cfg.hasher, base_nonce);
+        self.stat_updater.reset();
         let mut job = self.worksource.get_new_work().unwrap();
         loop {
             let mut hashes = hasher.hashes(job);

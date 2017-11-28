@@ -15,6 +15,7 @@ pub struct StatUpdater {
     start_time: Instant,
 }
 
+// TODO: replace new/reset with builder that starts timer once, at the right time
 impl StatUpdater {
     fn new(stats: Arc<Mutex<WorkerStats>>) -> Self {
         StatUpdater {
@@ -22,6 +23,10 @@ impl StatUpdater {
             hashes: 0usize,
             start_time: Instant::now(),
         }
+    }
+
+    pub fn reset(&mut self) {
+        self.start_time = Instant::now();
     }
 
     pub fn inc_hashes(&mut self) {
