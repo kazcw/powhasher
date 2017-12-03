@@ -3,6 +3,9 @@
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
+/// Minimum increase to submit to statistic counter.
+const LOG_THRESHOLD: usize = 16;
+
 #[derive(Default, Copy, Clone, Debug)]
 pub struct WorkerStats {
     pub hashes: usize,
@@ -11,7 +14,8 @@ pub struct WorkerStats {
 
 pub struct StatUpdater {
     stats: Arc<Mutex<WorkerStats>>,
-    hashes: usize,
+    new_hashes: usize,
+    logged_hashes: usize,
     start_time: Instant,
 }
 
@@ -20,7 +24,8 @@ impl StatUpdater {
     fn new(stats: Arc<Mutex<WorkerStats>>) -> Self {
         StatUpdater {
             stats,
-            hashes: 0usize,
+            new_hashes: 0,
+            logged_hashes: 0,
             start_time: Instant::now(),
         }
     }
@@ -29,12 +34,14 @@ impl StatUpdater {
         self.start_time = Instant::now();
     }
 
-    pub fn inc_hashes(&mut self) {
-        self.hashes += 1;
-        if self.hashes & 0xf == 0 {
+    pub fn log_hashes(&mut self, n: usize) {
+        self.new_hashes += n;
+        if self.new_hashes >= LOG_THRESHOLD {
+            self.logged_hashes += self.new_hashes;
+            self.new_hashes = 0;
             let dur = self.start_time.elapsed();
             let mut stats = self.stats.lock().unwrap();
-            stats.hashes = self.hashes;
+            stats.hashes = self.logged_hashes;
             stats.runtime = dur;
         }
     }

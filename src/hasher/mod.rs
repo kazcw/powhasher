@@ -5,12 +5,8 @@ use job::{Hash, JobBlob, Nonce};
 
 // XXX TODO: Hasher should be !Send to ensure memory locality correctness
 
-// produces an iter, to support "pipelined" impl
-/*
-pub trait Hasher: Iterator<Item = (Nonce, Hash)> {
-    fn hashes(&mut self, blob) -> Hashes;
-}
-*/
+/// Number of hashes to do in a batch, i.e. between checks for new work.
+const SINGLEHASH_BATCH_SIZE: usize = 16;
 
 pub struct AesniPipelinedHasher {
     base_nonce: Nonce,
@@ -43,17 +39,23 @@ impl<'a> Hashes<'a> {
         state.init(blob.as_slice());
         Hashes { nonce, blob, state }
     }
-}
 
-impl<'a> Iterator for Hashes<'a> {
-    type Item = (Nonce, Hash);
-
-    fn next(&mut self) -> Option<Self::Item> {
-        let prev_nonce = self.nonce;
-        self.nonce.inc();
-        self.blob.set_nonce(self.nonce);
-        let prev_result = Hash::new(self.state.advance(self.blob.as_slice()));
-        Some((prev_nonce, prev_result))
+    /// Hasher takes over control flow for a batch because:
+    /// - pipelined hashers are incompatible with a simple 1-input -> 1-output interface
+    /// - hashers/hasher configs have different batch size constraints
+    #[inline]
+    pub fn run_batch<F>(&mut self, handler: &mut F) -> usize
+    where
+        F: FnMut(Nonce, &Hash),
+    {
+        for _ in 0..SINGLEHASH_BATCH_SIZE {
+            let prev_nonce = self.nonce;
+            self.nonce.inc();
+            self.blob.set_nonce(self.nonce);
+            let prev_result = Hash::new(self.state.advance(self.blob.as_slice()));
+            handler(prev_nonce, &prev_result);
+        }
+        SINGLEHASH_BATCH_SIZE
     }
 }
 

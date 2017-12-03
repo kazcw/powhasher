@@ -36,10 +36,9 @@ impl Worker {
         loop {
             let mut hashes = hasher.hashes(job);
             job = loop {
-                for (nonce, hash) in hashes.by_ref().take(16) {
-                    self.stat_updater.inc_hashes();
-                    self.worksource.result(nonce, &hash).unwrap();
-                }
+                let n = hashes.run_batch(&mut |nonce, hash|
+                                         self.worksource.result(nonce, hash).unwrap());
+                self.stat_updater.log_hashes(n);
 
                 if let Some(new_job) = self.worksource.get_new_work() {
                     break new_job;
