@@ -2,7 +2,7 @@
 
 #![feature(asm)]
 #![feature(attr_literals)]
-#![feature(repr_align)]
+#![feature(ptr_internals)]
 #![feature(repr_simd)]
 #![feature(type_ascription)]
 #![feature(unique)]
@@ -63,7 +63,7 @@ impl Hashstate {
         self.state0 = State::from(keccak1600::keccak1600(blob));
         cn_aesni::transplode(
             (&mut self.state1).into(), // dummy buffer, input/output garbage
-            (&mut self.memory),
+            &mut self.memory,
             (&self.state0).into(),
         );
     }

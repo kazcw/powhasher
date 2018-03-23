@@ -44,7 +44,7 @@ impl From<CpuId> for Nonce {
     }
 }
 
-#[derive(Serialize)]
+#[derive(Debug, Serialize)]
 #[repr(align(64))]
 pub struct Hash(#[serde(serialize_with = "hexbytes::byte32_to_hex")] [u8; 32]);
 

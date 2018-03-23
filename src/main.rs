@@ -8,7 +8,7 @@
 // memmap (no hugepage support)
 
 #![feature(attr_literals)]
-#![feature(repr_align)]
+#![feature(custom_attribute)]
 
 extern crate serde;
 #[macro_use]
@@ -33,7 +33,6 @@ extern crate cryptonight;
 
 use std::fs::File;
 use std::mem;
-use std::thread;
 use std::time::Duration;
 
 mod hasher;

@@ -4,8 +4,6 @@
 
 use arrayvec::ArrayString;
 use job::{Hash, Job, JobId, Nonce};
-use serde::{Serialize, Serializer};
-use serde::ser::SerializeMap;
 use std::error::Error;
 use std::fmt::{self, Display, Formatter};
 
@@ -49,7 +47,8 @@ impl Error for ErrorReply {
 pub enum PoolReply {
     /// reply to getjob (not implemented) and login
     Job {
-        #[serde(rename = "id")] worker_id: WorkerId,
+        #[serde(rename = "id")]
+        worker_id: WorkerId,
         status: String,
         job: Job,
     },
@@ -69,9 +68,10 @@ pub enum PoolEvent<ReqId> {
     },
 }
 
-#[derive(Serialize)]
+#[derive(Debug, Serialize)]
 pub struct Share<'a> {
-    #[serde(rename = "id")] pub worker_id: &'a WorkerId,
+    #[serde(rename = "id")]
+    pub worker_id: &'a WorkerId,
     pub job_id: &'a JobId,
     pub nonce: Nonce,
     pub result: &'a Hash,
@@ -84,6 +84,8 @@ pub struct Credentials<'a> {
     pub agent: &'a str,
 }
 
+#[derive(Debug, Serialize)]
+#[serde(tag = "method", content = "params", rename_all = "lowercase")]
 pub enum PoolCommand<'a> {
     Submit(Share<'a>),
     Login(Credentials<'a>),
@@ -96,6 +98,7 @@ pub enum PoolCommand<'a> {
 /// expect the same type to come back in replies. If you are receiving
 /// the requests, you should use a generic type like
 /// `serde_json::Value`.
+#[derive(Debug, Serialize)]
 pub struct PoolRequest<'a, ReqId> {
     pub id: ReqId,
     #[serde(flatten)]

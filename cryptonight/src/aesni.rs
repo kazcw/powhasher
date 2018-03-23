@@ -7,9 +7,9 @@ macro_rules! expand_round {
         let output: i64x2;
         asm!(concat!("
             aeskeygenassist xmm2, xmm1, ", $round,
-                                                    "
+                                                            "
             pshufd xmm2, xmm2, ", $mask,
-                                                    "
+                                                            "
             movdqa xmm3, xmm0
             pslldq xmm3, 0x4
             pxor   xmm0, xmm3
@@ -19,11 +19,11 @@ macro_rules! expand_round {
             pxor   xmm0, xmm3
             pxor   xmm0, xmm2
             ")
-                                                    : "={xmm0}"(output)
-                                                    : "{xmm0}"($in0),"{xmm1}"($in1)
-                                                    : "xmm1", "xmm2", "xmm3"
-                                                    : "intel"
-                                                );
+                                                            : "={xmm0}"(output)
+                                                            : "{xmm0}"($in0),"{xmm1}"($in1)
+                                                            : "xmm1", "xmm2", "xmm3"
+                                                            : "intel"
+                                                        );
         output
     }};
 }

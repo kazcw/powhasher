@@ -15,7 +15,7 @@ pub fn mix(memory: &mut [i64x2; 1 << 14], from: &[i64x2]) {
         mov    ecx,0x80000
         mov    rbx,r8
     .align 16
-    0:
+    ${:private}cnmix0${:uid}:
         and    ebx,0x1ffff0
         movdqa xmm0,[rdi+rbx]
         aesenc xmm0,xmm1
@@ -37,7 +37,7 @@ pub fn mix(memory: &mut [i64x2; 1 << 14], from: &[i64x2]) {
         pxor   xmm1,xmm4
         dec    ecx
         movdqa xmm2,xmm0
-        jne 0b
+        jne ${:private}cnmix0${:uid}
         pop    rsi
     "::"{rdi}"(memory), "{rsi}"(from.as_ptr())
              :"cc","memory",
@@ -70,7 +70,7 @@ pub fn transplode(into: &mut [i64x2], memory: &mut [i64x2; 1 << 14], from: &[i64
     push   rcx
     push   rdx
     lea    r9,[rdx+0x200000]
-0:
+${:private}cnsplode0${:uid}:
     pxor   xmm0,[rdx]
     pxor   xmm1,[rdx+0x10]
     pxor   xmm2,[rdx+0x20]
@@ -80,7 +80,7 @@ pub fn transplode(into: &mut [i64x2], memory: &mut [i64x2; 1 << 14], from: &[i64
     pxor   xmm6,[rdx+0x60]
     pxor   xmm7,[rdx+0x70]
     xor    eax,eax
-1:
+${:private}cnsplode1${:uid}:
     lea    rbx,[rdi+rax]
     lea    rcx,[rsi+rax]
     aesenc xmm0,[rbx]
@@ -101,7 +101,7 @@ pub fn transplode(into: &mut [i64x2], memory: &mut [i64x2; 1 << 14], from: &[i64
     aesenc xmm15,[rcx]
     add    eax,0x10
     cmp    eax,0xa0
-    jne 1b
+    jne ${:private}cnsplode1${:uid}
     movdqa [rdx+0x00],xmm8
     movdqa [rdx+0x10],xmm9
     movdqa [rdx+0x20],xmm10
@@ -112,7 +112,7 @@ pub fn transplode(into: &mut [i64x2], memory: &mut [i64x2; 1 << 14], from: &[i64
     movdqa [rdx+0x70],xmm15
     add    rdx,0x80
     cmp    r9,rdx
-    jne 0b
+    jne ${:private}cnsplode0${:uid}
     pop    rdx
     pop    rcx
     movntdq [rcx+0x00],xmm0
