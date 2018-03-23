@@ -106,7 +106,8 @@ fn main() {
 
         println!("pool stats: {:?}", poolstats.get());
 
-        thread::sleep(Duration::from_secs(5));
+        //thread::sleep(Duration::from_secs(300));
+        std::io::stdin().read_line(&mut String::new()).unwrap();
     }
 }
 
