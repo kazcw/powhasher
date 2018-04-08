@@ -27,7 +27,7 @@ impl ClientWriter {
     fn new(stream: BufWriter<TcpStream>) -> Self {
         ClientWriter {
             stream,
-            next_id: RequestId(0)
+            next_id: RequestId(1),
         }
     }
 
