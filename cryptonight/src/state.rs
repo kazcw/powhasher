@@ -40,6 +40,12 @@ impl<'a> From<&'a mut State> for &'a mut [u64; 25] {
     }
 }
 
+impl<'a> From<&'a State> for &'a [u64; 25] {
+    fn from(state: &'a State) -> Self {
+        unsafe { &state.u64_array }
+    }
+}
+
 impl<'a> From<&'a State> for &'a [i64x2] {
     fn from(state: &'a State) -> Self {
         unsafe { &state.i64x2_array[..] }

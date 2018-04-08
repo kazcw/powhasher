@@ -3,27 +3,42 @@
 use aesni;
 use stdsimd::simd::i64x2;
 
-pub fn mix(memory: &mut [i64x2; 1 << 14], from: &[i64x2]) {
+pub fn mix(memory: &mut [i64x2; 1 << 14], from: &[i64x2], tweak: u64) {
     unsafe {
         asm!("
+        pxor   xmm5,xmm5
+        pinsrq xmm5,rax,1
         push   rsi
         movdqa xmm1,[rsi+0x00]
         movdqa xmm2,[rsi+0x10]
         pxor   xmm1,[rsi+0x20]
         pxor   xmm2,[rsi+0x30]
         movq   r8,xmm1
-        mov    ecx,0x80000
+        mov    r10d,0x80000
         mov    rbx,r8
     .align 16
     ${:private}cnmix0${:uid}:
         and    ebx,0x1ffff0
         movdqa xmm0,[rdi+rbx]
         aesenc xmm0,xmm1
+        pxor   xmm2,xmm0
+        movq   rax,xmm2
+        mov    [rdi+rbx],rax
+        pextrq rsi,xmm2,0x1
+        mov    eax,esi
+        and    eax,0x31000000
+        lea    ecx,[rax+rax*8]
+        shr    ecx,26
+        and    ecx,0xE
+        mov    eax,0x13174000
+        shl    eax,cl
+        and    eax,0x30000000
+        xor    rsi,rax
+        mov    [rdi+rbx+8],rsi
+
         movq   rsi,xmm0
         mov    rax,rsi
-        pxor   xmm2,xmm0
         and    esi,0x1ffff0
-        movdqa [rdi+rbx],xmm2
         mov    r9,[rdi+rsi]
         mul    r9
         add    r8,rdx
@@ -33,15 +48,17 @@ pub fn mix(memory: &mut [i64x2; 1 << 14], from: &[i64x2]) {
         movdqa xmm4,[rdi+rsi]
         pinsrq xmm3,rax,0x1
         paddq  xmm1,xmm3
+        pxor   xmm1,xmm5
         movdqa [rdi+rsi],xmm1
+        pxor   xmm1,xmm5
         pxor   xmm1,xmm4
-        dec    ecx
+        dec    r10d
         movdqa xmm2,xmm0
         jne ${:private}cnmix0${:uid}
         pop    rsi
-    "::"{rdi}"(memory), "{rsi}"(from.as_ptr())
+    "::"{rdi}"(memory), "{rsi}"(from.as_ptr()), "{rax}"(tweak)
              :"cc","memory",
-             "ecx", "r8", "r9", "rax", "rbx", "xmm0", "xmm1", "xmm2", "xmm3", "xmm4"
+             "r8", "r9", "r10", "rcx", "rbx", "xmm0", "xmm1", "xmm2", "xmm3", "xmm4", "xmm5"
              :"intel");
     }
 }

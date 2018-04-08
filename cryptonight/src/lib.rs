@@ -48,6 +48,13 @@ pub struct Hashstate {
     memory: Mmap<[i64x2; 1 << 14]>,
     state0: State,
     state1: State,
+    tweak: u64,
+}
+
+fn read_u64le(bytes: &[u8]) -> u64 {
+    (bytes[0] as u64) | ((bytes[1] as u64) << 8) | ((bytes[2] as u64) << 16)
+        | ((bytes[3] as u64) << 24) | ((bytes[4] as u64) << 32) | ((bytes[5] as u64) << 40)
+        | ((bytes[6] as u64) << 48) | ((bytes[7] as u64) << 56)
 }
 
 impl Hashstate {
@@ -56,11 +63,13 @@ impl Hashstate {
             memory: Mmap::new_huge().expect("hugepage mmap"),
             state0: State::default(),
             state1: State::default(),
+            tweak: u64::default(),
         })
     }
 
     pub fn init(&mut self, blob: &[u8]) {
         self.state0 = State::from(keccak1600::keccak1600(blob));
+        self.tweak = read_u64le(&blob[35..43]) ^ ((&self.state0).into(): &[u64; 25])[24];
         cn_aesni::transplode(
             (&mut self.state1).into(), // dummy buffer, input/output garbage
             &mut self.memory,
@@ -70,8 +79,9 @@ impl Hashstate {
 
     /// "pipelined": returns result for previous input
     pub fn advance(&mut self, blob: &[u8]) -> GenericArray<u8, U32> {
-        cn_aesni::mix(&mut self.memory, (&self.state0).into());
+        cn_aesni::mix(&mut self.memory, (&self.state0).into(), self.tweak);
         self.state1 = State::from(keccak1600::keccak1600(blob));
+        self.tweak = read_u64le(&blob[35..43]) ^ ((&self.state1).into(): &[u64; 25])[24];
         cn_aesni::transplode(
             (&mut self.state0).into(),
             &mut self.memory,
@@ -87,15 +97,21 @@ impl Hashstate {
 mod tests {
     use super::*;
 
-    // "official" slow_hash test vectors
-    const INPUT0: &[u8] = hex!("6465206f6d6e69627573206475626974616e64756d");
-    const INPUT1: &[u8] = hex!("6162756e64616e732063617574656c61206e6f6e206e6f636574");
-    const INPUT2: &[u8] = hex!("63617665617420656d70746f72");
-    const INPUT3: &[u8] = hex!("6578206e6968696c6f206e6968696c20666974");
-    const OUTPUT0: &[u8] = hex!("2f8e3df40bd11f9ac90c743ca8e32bb391da4fb98612aa3b6cdc639ee00b31f5");
-    const OUTPUT1: &[u8] = hex!("722fa8ccd594d40e4a41f3822734304c8d5eff7e1b528408e2229da38ba553c4");
-    const OUTPUT2: &[u8] = hex!("bbec2cacf69866a8e740380fe7b818fc78f8571221742d729d9d02d7f8989b87");
-    const OUTPUT3: &[u8] = hex!("b1257de4efc5ce28c6b40ceb1c6c8f812a64634eb3e81c5220bee9b2b76a6f05");
+    // "official" slow_hash test vectors, from tests-slow-1.txt
+    const INPUT0: &[u8] = hex!(
+        "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+    );
+    const INPUT1: &[u8] = hex!("00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000");
+    const INPUT2: &[u8] = hex!("8519e039172b0d70e5ca7b3383d6b3167315a422747b73f019cf9528f0fde341fd0f2a63030ba6450525cf6de31837669af6f1df8131faf50aaab8d3a7405589");
+    const INPUT3: &[u8] = hex!("37a636d7dafdf259b7287eddca2f58099e98619d2f99bdb8969d7b14498102cc065201c8be90bd777323f449848b215d2977c92c4c1c2da36ab46b2e389689ed97c18fec08cd3b03235c5e4c62a37ad88c7b67932495a71090e85dd4020a9300");
+    const INPUT4: &[u8] = hex!(
+        "38274c97c45a172cfc97679870422e3a1ab0784960c60514d816271415c306ee3a3ed1a77e31f6a885c3cb"
+    );
+    const OUTPUT0: &[u8] = hex!("b5a7f63abb94d07d1a6445c36c07c7e8327fe61b1647e391b4c7edae5de57a3d");
+    const OUTPUT1: &[u8] = hex!("80563c40ed46575a9e44820d93ee095e2851aa22483fd67837118c6cd951ba61");
+    const OUTPUT2: &[u8] = hex!("5bb40c5880cef2f739bdb6aaaf16161eaae55530e7b10d7ea996b751a299e949");
+    const OUTPUT3: &[u8] = hex!("613e638505ba1fd05f428d5c9f8e08f8165614342dac419adc6a47dce257eb3e");
+    const OUTPUT4: &[u8] = hex!("ed082e49dbd5bbe34a3726a0d1dad981146062b39d36d62c71eb1ed8ab49459b");
 
     #[test]
     fn test0() {
@@ -110,7 +126,7 @@ mod tests {
         let mut state = Hashstate::new().unwrap();
         state.init(&INPUT0[..]);
         let _ = state.advance(&INPUT1[..]);
-        let out1 = state.advance(&INPUT2[..]);
+        let out1 = state.advance(&INPUT1[..]);
         assert_eq!(&out1[..], &OUTPUT1[..]);
     }
 
@@ -120,7 +136,7 @@ mod tests {
         state.init(&INPUT0[..]);
         let _ = state.advance(&INPUT1[..]);
         let _ = state.advance(&INPUT2[..]);
-        let out2 = state.advance(&INPUT3[..]);
+        let out2 = state.advance(&INPUT1[..]);
         assert_eq!(&out2[..], &OUTPUT2[..]);
     }
 
@@ -131,7 +147,19 @@ mod tests {
         let _ = state.advance(&INPUT1[..]);
         let _ = state.advance(&INPUT2[..]);
         let _ = state.advance(&INPUT3[..]);
-        let out3 = state.advance(&[]);
+        let out3 = state.advance(&INPUT1[..]);
         assert_eq!(&out3[..], &OUTPUT3[..]);
+    }
+
+    #[test]
+    fn test4() {
+        let mut state = Hashstate::new().unwrap();
+        state.init(&INPUT0[..]);
+        let _ = state.advance(&INPUT1[..]);
+        let _ = state.advance(&INPUT2[..]);
+        let _ = state.advance(&INPUT3[..]);
+        let _ = state.advance(&INPUT4[..]);
+        let out4 = state.advance(&INPUT1[..]);
+        assert_eq!(&out4[..], &OUTPUT4[..]);
     }
 }
