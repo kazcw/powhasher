@@ -17,10 +17,12 @@ pub fn mix(memory: &mut [i64x2; 1 << 14], from: &[i64x2], tweak: u64) {
         mov    r10d,0x80000
         mov    rbx,r8
     .align 16
+//mov ebx, 111
+//.byte 0x64, 0x67, 0x90
     ${:private}cnmix0${:uid}:
         and    ebx,0x1ffff0
-        movdqa xmm0,[rdi+rbx]
-        aesenc xmm0,xmm1
+        movdqa xmm0,[rdi+rbx]	//
+        aesenc xmm0,xmm1	//
         pxor   xmm2,xmm0
         movq   rax,xmm2
         mov    [rdi+rbx],rax
@@ -36,25 +38,28 @@ pub fn mix(memory: &mut [i64x2; 1 << 14], from: &[i64x2], tweak: u64) {
         xor    rsi,rax
         mov    [rdi+rbx+8],rsi
 
-        movq   rsi,xmm0
+        movq   rsi,xmm0		//
         mov    rax,rsi
         and    esi,0x1ffff0
-        mov    r9,[rdi+rsi]
-        mul    r9
-        add    r8,rdx
-        xor    r8,r9
-        mov    rbx,r8
-        movq   xmm3,rdx
-        movdqa xmm4,[rdi+rsi]
-        pinsrq xmm3,rax,0x1
-        paddq  xmm1,xmm3
-        pxor   xmm1,xmm5
-        movdqa [rdi+rsi],xmm1
-        pxor   xmm1,xmm5
-        pxor   xmm1,xmm4
+        mov    r9,[rdi+rsi]	//
+        mul    r9		//
+        lea    ebx,[r8+rdx]
+        xor    ebx,r9d
+        add    r8d,edx
+        xor    r8d,r9d
+        movdqa xmm4,xmm5
+        pxor   xmm4,[rdi+rsi]
+        movq   xmm3,rdx		//
+        pinsrq xmm3,rax,0x1	//
+        paddq  xmm1,xmm3	//
+        pxor   xmm1,xmm5	//
+        movdqa [rdi+rsi],xmm1	//
+        pxor   xmm1,xmm4	//
         dec    r10d
         movdqa xmm2,xmm0
         jne ${:private}cnmix0${:uid}
+//mov ebx, 222
+//.byte 0x64, 0x67, 0x90
         pop    rsi
     "::"{rdi}"(memory), "{rsi}"(from.as_ptr()), "{rax}"(tweak)
              :"cc","memory",

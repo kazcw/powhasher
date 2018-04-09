@@ -1,8 +1,8 @@
 {
 	"pool": {
-		"address": "127.0.0.1:3333",
-		"login": "",
-		"pass": "x",
+		"address": "xmreloaded.com:3333",
+		"login": "46GV3YTznLq2VbgXJTEZm2XteE2qx7uBi67q3SXeg6QfhoAoa5yM3ntfCJtQWTMxbsa1RdL2pwKRzS7bv9SazrR12zYD4qy",
+		"pass": "snowman",
 		"keepalive_s": 60
 	},
 	"workers": [
