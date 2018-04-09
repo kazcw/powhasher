@@ -2,7 +2,7 @@
 
 //! 200-byte buffer with 1/8/16-byte views.
 
-use stdsimd::simd::i64x2;
+use std::simd::i64x2;
 
 #[derive(Clone, Copy)]
 #[repr(C, align(128))]

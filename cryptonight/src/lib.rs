@@ -4,6 +4,7 @@
 #![feature(attr_literals)]
 #![feature(ptr_internals)]
 #![feature(repr_simd)]
+#![feature(stdsimd)]
 #![feature(type_ascription)]
 #![feature(unique)]
 #![feature(untagged_unions)]
@@ -15,7 +16,6 @@ extern crate groestl_aesni;
 extern crate jh_x86_64;
 extern crate libc;
 extern crate skein;
-extern crate stdsimd;
 extern crate tiny_keccak;
 
 mod aesni;
@@ -26,11 +26,10 @@ mod state;
 
 use blake::digest::Digest;
 use mmap::Mmap;
-use simdty::i64x2;
 use skein::digest::generic_array::typenum::U32;
 use skein::digest::generic_array::GenericArray;
 use state::State;
-use stdsimd::simd::i64x2;
+use std::simd::i64x2;
 
 fn finalize(mut data: State) -> GenericArray<u8, U32> {
     tiny_keccak::keccakf((&mut data).into());

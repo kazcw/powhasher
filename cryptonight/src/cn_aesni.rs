@@ -1,7 +1,7 @@
 // copyright 2017 Kaz Wesley
 
 use aesni;
-use stdsimd::simd::i64x2;
+use std::simd::i64x2;
 
 pub fn mix(memory: &mut [i64x2; 1 << 14], from: &[i64x2], tweak: u64) {
     unsafe {
