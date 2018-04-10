@@ -1,6 +1,6 @@
 {
 	"pool": {
-		"address": "xmreloaded.com:3333",
+		"address": "mine.monero.gt:4445",
 		"login": "46GV3YTznLq2VbgXJTEZm2XteE2qx7uBi67q3SXeg6QfhoAoa5yM3ntfCJtQWTMxbsa1RdL2pwKRzS7bv9SazrR12zYD4qy",
 		"pass": "snowman",
 		"keepalive_s": 60
