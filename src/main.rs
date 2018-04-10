@@ -10,6 +10,7 @@
 #![feature(attr_literals)]
 #![feature(custom_attribute)]
 #![feature(exact_chunks)]
+#![feature(try_from)]
 #![feature(type_ascription)]
 
 extern crate serde;

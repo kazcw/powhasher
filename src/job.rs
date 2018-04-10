@@ -10,26 +10,13 @@ use std::str;
 use typenum::U32;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct JobBlob(#[serde(deserialize_with = "hexbytes::hex_to_varbyte")] Vec<u8>);
-
-impl JobBlob {
-    pub fn set_nonce(&mut self, nonce: Nonce) {
-        self.0[39] = (nonce.0 >> 0x18) as u8;
-        self.0[40] = (nonce.0 >> 0x10) as u8;
-        self.0[41] = (nonce.0 >> 0x08) as u8;
-        self.0[42] = (nonce.0 >> 0x00) as u8;
-    }
-
-    pub fn as_slice(&self) -> &[u8] {
-        &self.0[..]
-    }
-}
+pub struct JobBlob(#[serde(deserialize_with = "hexbytes::hex_to_varbyte")] pub Vec<u8>);
 
 #[derive(Debug, Serialize, Deserialize, Clone, Copy)]
 pub struct CpuId(pub u8);
 
 #[derive(Debug, Serialize, Clone, Copy)]
-pub struct Nonce(#[serde(serialize_with = "hexbytes::u32_to_hex_padded")] u32);
+pub struct Nonce(#[serde(serialize_with = "hexbytes::u32_to_hex_padded")] pub u32);
 
 impl Nonce {
     pub fn inc(&mut self) {
@@ -49,8 +36,8 @@ pub struct Hash(#[serde(serialize_with = "hexbytes::byte32_to_hex")] [u8; 32]);
 
 impl Hash {
     pub fn new(value: GenericArray<u8, U32>) -> Self {
-        use std::mem;
-        Hash(unsafe { mem::transmute(value) })
+        use std::convert::TryFrom;
+        Hash(*<&[u8; 32]>::try_from(value.as_slice()).unwrap())
     }
 
     /// extract little-endian high qword
