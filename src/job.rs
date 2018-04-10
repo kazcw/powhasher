@@ -2,16 +2,15 @@
 
 //! Data structures common to poolclient and hasher
 
-use arrayvec::{ArrayString, ArrayVec};
+use arrayvec::ArrayString;
 use generic_array::GenericArray;
 use hexbytes;
 use serde::Deserializer;
 use std::str;
 use typenum::U32;
 
-/// [u8; 84] variable len hex value; round up to 96 for traits reasons
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct JobBlob(#[serde(deserialize_with = "hexbytes::hex_to_varbyte96")] ArrayVec<[u8; 96]>);
+pub struct JobBlob(#[serde(deserialize_with = "hexbytes::hex_to_varbyte")] Vec<u8>);
 
 impl JobBlob {
     pub fn set_nonce(&mut self, nonce: Nonce) {
@@ -22,7 +21,7 @@ impl JobBlob {
     }
 
     pub fn as_slice(&self) -> &[u8] {
-        self.0.as_slice()
+        &self.0[..]
     }
 }
 

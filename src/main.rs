@@ -9,6 +9,8 @@
 
 #![feature(attr_literals)]
 #![feature(custom_attribute)]
+#![feature(exact_chunks)]
+#![feature(type_ascription)]
 
 extern crate serde;
 #[macro_use]

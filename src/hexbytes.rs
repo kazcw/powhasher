@@ -73,22 +73,20 @@ where
     serializer.serialize_str(str::from_utf8(&u32_to_hex_string_bytes_padded(n)).unwrap())
 }
 
-pub fn hex_to_varbyte96<'de, D>(deserializer: D) -> Result<ArrayVec<[u8; 96]>, D::Error>
+pub fn hex_to_varbyte<'de, D>(deserializer: D) -> Result<Vec<u8>, D::Error>
 where
     D: Deserializer<'de>,
 {
     use serde::de::Error;
-    let mut out = ArrayVec::new();
     let bytes_in = <&str as serde::Deserialize>::deserialize(deserializer)?.as_bytes();
     if bytes_in.len() & 0x1 != 0 {
         return Err(Error::custom("odd-length hex blob"));
     }
-    for in2 in bytes_in.chunks(2) {
-        let a = hex_to_nibble(in2[0]).map_err(|_| Error::custom("non-hex char in input"))?;
-        let b = hex_to_nibble(in2[1]).map_err(|_| Error::custom("non-hex char in input"))?;
-        out.push(a << 4 | b);
-    }
-    Ok(out)
+    (bytes_in
+        .exact_chunks(2)
+        .map(|ab| hex_to_nibble(ab[0]).and_then(|a| Ok(a << 4 | hex_to_nibble(ab[1])?)))
+        .collect(): Result<Vec<_>, _>)
+        .map_err(|_| Error::custom("non-hex char in input"))
 }
 
 use serde::de::{self, Visitor};
@@ -113,10 +111,8 @@ impl<'de> Visitor<'de> for Hex64leStrVisitor {
         }
         let mut out = 0u64;
         for (i, xs) in hex_in.chunks(2).enumerate() {
-            let nib0 =
-                u64::from(hex_to_nibble(xs[0]).map_err(|_| Error::custom("non-hex char in input"))?);
-            let nib1 =
-                u64::from(hex_to_nibble(xs[1]).map_err(|_| Error::custom("non-hex char in input"))?);
+            let nib0 = u64::from(hex_to_nibble(xs[0]).map_err(|_| Error::custom("non-hex char in input"))?);
+            let nib1 = u64::from(hex_to_nibble(xs[1]).map_err(|_| Error::custom("non-hex char in input"))?);
             out |= nib0 << (i * 8 + 4);
             out |= nib1 << (i * 8);
         }
