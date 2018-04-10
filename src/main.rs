@@ -37,12 +37,15 @@ extern crate cryptonight;
 use std::fs::File;
 use std::mem;
 use std::time::Duration;
+use std::thread;
 
 mod hexbytes;
 mod poolclient;
-mod workgroup;
+mod worker;
 mod job;
-use workgroup::Workgroup;
+
+use worker::Worker;
+use worker::stats;
 
 const AGENT: &str = "pow#er/0.2.0";
 
@@ -50,7 +53,7 @@ const AGENT: &str = "pow#er/0.2.0";
 #[serde(deny_unknown_fields)]
 struct Config {
     pub pool: poolclient::Config,
-    pub workers: workgroup::Config,
+    pub workers: Vec<worker::Config>,
 }
 
 fn main() {
@@ -71,8 +74,22 @@ fn main() {
 
     let (worksource, poolstats) = poolclient::run_thread(&cfg.pool, AGENT).unwrap();
 
-    let workers = Workgroup::new(worksource);
-    let workerstats = workers.run_threads(cfg.workers);
+    let core_ids = core_affinity::get_core_ids().unwrap();
+    let workerstats: Vec<_> = cfg.workers
+        .into_iter()
+        .enumerate()
+        .map(|(i, w)| {
+            let (stat_updater, stat_reader) = stats::channel();
+            let worker = Worker::new(worksource.clone(), stat_updater);
+            let core_ids = core_ids.clone();
+            debug!("starting worker{} with config: {:?}", i, &w);
+            thread::Builder::new()
+                .name(format!("worker{}", i))
+                .spawn(move || worker.run(w, core_ids))
+                .unwrap();
+            stat_reader
+        })
+        .collect();
 
     let mut prev_stats: Vec<_> = workerstats.iter().map(|w| w.get()).collect();
     let mut new_stats = Vec::new();
@@ -105,7 +122,6 @@ fn main() {
 
         println!("pool stats: {:?}", poolstats.get());
 
-        //thread::sleep(Duration::from_secs(300));
         std::io::stdin().read_line(&mut String::new()).unwrap();
     }
 }

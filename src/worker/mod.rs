@@ -1,10 +1,12 @@
 // copyright 2017 Kaz Wesley
 
+pub mod stats;
+
 use cryptonight::Hashstate;
 use core_affinity::{self, CoreId};
 use job::{CpuId, Hash, Nonce};
 use poolclient::WorkSource;
-use workgroup::stats::StatUpdater;
+use stats::StatUpdater;
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
