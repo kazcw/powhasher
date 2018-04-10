@@ -1,21 +1,38 @@
 // copyright 2017 Kaz Wesley
 
+use cryptonight::Hashstate;
 use core_affinity::{self, CoreId};
-use hasher::{self, HasherBuilder};
-use job::{CpuId, Nonce};
+use job::{CpuId, Hash, Nonce};
 use poolclient::WorkSource;
 use workgroup::stats::StatUpdater;
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
+pub enum Hasher {
+    #[serde(rename = "cn-cpu-aesni")]
+    CnCpuAesni { multi: usize },
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Config {
     cpu: CpuId,
-    hasher: hasher::Config,
+    hasher: Hasher,
 }
 
 pub struct Worker {
     worksource: WorkSource,
     stat_updater: StatUpdater,
+}
+
+/// Number of hashes to do in a batch, i.e. between checks for new work.
+const SINGLEHASH_BATCH_SIZE: usize = 16;
+
+fn set_nonce(v: &mut [u8], nonce: u32) {
+    v[39] = (nonce >> 0x18) as u8;
+    v[40] = (nonce >> 0x10) as u8;
+    v[41] = (nonce >> 0x08) as u8;
+    v[42] = (nonce >> 0x00) as u8;
 }
 
 impl Worker {
@@ -26,23 +43,33 @@ impl Worker {
         }
     }
 
-    pub fn run(mut self, cfg: Config, hasher_builder: HasherBuilder, core_ids: Vec<CoreId>) -> ! {
+    pub fn run(mut self, cfg: Config, core_ids: Vec<CoreId>) -> ! {
         // TODO: CoreId error handling
         core_affinity::set_for_current(core_ids[cfg.cpu.0 as usize]);
-        let base_nonce: Nonce = cfg.cpu.into();
-        let mut hasher = hasher_builder.into_hasher(&cfg.hasher, base_nonce.0);
         self.stat_updater.reset();
-        let mut job = self.worksource.get_new_work().unwrap();
+        let base_nonce = (cfg.cpu.into(): Nonce).0;
+        let mut blob = self.worksource.get_new_work().unwrap().0;
+        let mut state = Hashstate::new().unwrap();
         loop {
-            let mut hashes = hasher.hashes(job.0);
-            job = loop {
-                let n = hashes.run_batch(&mut |nonce, hash| {
-                    self.worksource.result(Nonce(nonce), hash).unwrap()
-                });
-                self.stat_updater.log_hashes(n);
+            let mut nonce = base_nonce;
+            set_nonce(&mut blob, nonce);
+            state.init(&blob);
+            loop {
+                for _ in 0..SINGLEHASH_BATCH_SIZE {
+                    let prev_nonce = nonce;
+                    nonce = nonce.wrapping_add(1);
+                    set_nonce(&mut blob, nonce);
+                    let prev_result = state.advance(&blob);
+                    self.worksource
+                        .result(Nonce(prev_nonce), &Hash::new(prev_result))
+                        .unwrap()
+                }
 
-                if let Some(new_job) = self.worksource.get_new_work() {
-                    break new_job;
+                self.stat_updater.log_hashes(SINGLEHASH_BATCH_SIZE);
+
+                if let Some(new_blob) = self.worksource.get_new_work() {
+                    blob = new_blob.0;
+                    break;
                 }
             }
         }

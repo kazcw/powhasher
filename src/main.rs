@@ -38,12 +38,10 @@ use std::fs::File;
 use std::mem;
 use std::time::Duration;
 
-mod hasher;
 mod hexbytes;
 mod poolclient;
 mod workgroup;
 mod job;
-use hasher::HasherBuilder;
 use workgroup::Workgroup;
 
 const AGENT: &str = "pow#er/0.2.0";
@@ -73,8 +71,7 @@ fn main() {
 
     let (worksource, poolstats) = poolclient::run_thread(&cfg.pool, AGENT).unwrap();
 
-    let hasher_builder = HasherBuilder::new();
-    let workers = Workgroup::new(worksource, hasher_builder);
+    let workers = Workgroup::new(worksource);
     let workerstats = workers.run_threads(cfg.workers);
 
     let mut prev_stats: Vec<_> = workerstats.iter().map(|w| w.get()).collect();
