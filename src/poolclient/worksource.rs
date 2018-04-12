@@ -15,6 +15,20 @@ pub struct WorkSource {
     stats: RequestLogger,
 }
 
+/*
+{
+    // getcur blocks until even
+    let mut id = getcur();
+    let lastlast = last;
+    while last != id {
+        data = getdata();
+        last = id;
+        id = getcur();
+    }
+    updated == (last == lastlast)
+}
+*/
+
 impl WorkSource {
     pub fn new(
         work: Arc<Mutex<Job>>,

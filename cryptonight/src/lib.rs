@@ -14,13 +14,13 @@
 extern crate blake;
 extern crate groestl_aesni;
 extern crate jh_x86_64;
+extern crate keccak;
 extern crate libc;
+extern crate sha3;
 extern crate skein;
-extern crate tiny_keccak;
 
 mod aesni;
 mod cn_aesni;
-mod keccak1600;
 mod mmap;
 mod state;
 
@@ -32,7 +32,7 @@ use state::State;
 use std::simd::i64x2;
 
 fn finalize(mut data: State) -> GenericArray<u8, U32> {
-    tiny_keccak::keccakf((&mut data).into());
+    keccak::f1600((&mut data).into());
     let bytes: &[u8; 200] = (&data).into();
     match bytes[0] & 3 {
         0 => blake::Blake256::digest(bytes),
@@ -67,7 +67,7 @@ impl Hashstate {
     }
 
     pub fn init(&mut self, blob: &[u8]) {
-        self.state0 = State::from(keccak1600::keccak1600(blob));
+        self.state0 = State::from(sha3::Keccak256Full::digest(blob));
         self.tweak = read_u64le(&blob[35..43]) ^ ((&self.state0).into(): &[u64; 25])[24];
         cn_aesni::transplode(
             (&mut self.state1).into(), // dummy buffer, input/output garbage
@@ -79,7 +79,7 @@ impl Hashstate {
     /// "pipelined": returns result for previous input
     pub fn advance(&mut self, blob: &[u8]) -> GenericArray<u8, U32> {
         cn_aesni::mix(&mut self.memory, (&self.state0).into(), self.tweak);
-        self.state1 = State::from(keccak1600::keccak1600(blob));
+        self.state1 = State::from(sha3::Keccak256Full::digest(blob));
         self.tweak = read_u64le(&blob[35..43]) ^ ((&self.state1).into(): &[u64; 25])[24];
         cn_aesni::transplode(
             (&mut self.state0).into(),

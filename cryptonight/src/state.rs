@@ -2,6 +2,8 @@
 
 //! 200-byte buffer with 1/8/16-byte views.
 
+use skein::digest::generic_array::typenum::U200;
+use skein::GenericArray;
 use std::simd::i64x2;
 
 #[derive(Clone, Copy)]
@@ -25,6 +27,15 @@ impl Default for State {
 impl From<[u64; 25]> for State {
     fn from(u64_array: [u64; 25]) -> State {
         State { u64_array }
+    }
+}
+
+impl From<GenericArray<u8, U200>> for State {
+    fn from(gen_array: GenericArray<u8, U200>) -> State {
+        use std::mem;
+        State {
+            u8_array: unsafe { mem::transmute(gen_array) },
+        }
     }
 }
 
