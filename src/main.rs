@@ -16,34 +16,27 @@
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;
-extern crate serde_json;
-
 extern crate env_logger;
+extern crate serde_json;
 #[macro_use]
 extern crate log;
-
 #[macro_use]
 extern crate failure;
-
 extern crate arrayvec;
-
 extern crate core_affinity;
-
+extern crate cryptonight;
 extern crate generic_array;
 extern crate typenum;
-
-extern crate cryptonight;
-
-use std::fs::File;
-use std::mem;
-use std::time::Duration;
-use std::thread;
 
 mod hexbytes;
 mod poolclient;
 mod worker;
 mod job;
 
+use std::fs::File;
+use std::mem;
+use std::time::Duration;
+use std::thread;
 use worker::Worker;
 use worker::stats;
 
@@ -66,10 +59,7 @@ fn main() {
         std::process::exit(1);
     }));
 
-    let cfg: Config = {
-        let file = File::open("./config.json").unwrap();
-        serde_json::from_reader(file).unwrap()
-    };
+    let cfg: Config = serde_json::from_reader(File::open("./config.json").unwrap()).unwrap();
     debug!("config: {:?}", &cfg);
 
     let (worksource, poolstats) = poolclient::run_thread(&cfg.pool, AGENT).unwrap();
