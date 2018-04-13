@@ -11,7 +11,7 @@ pub struct WorkSource {
     // XXX: should use a "single-writer seqlock" for work
     work: Arc<Mutex<Job>>,
     pool: Arc<Mutex<PoolClientWriter>>,
-    last_job: Option<(JobId, Target)>,
+    last_job: Option<JobId>,
     stats: RequestLogger,
 }
 
@@ -44,28 +44,24 @@ impl WorkSource {
     }
 
     /// return the current work blob if it's newer than the previously-returned
-    pub fn get_new_work(&mut self) -> Option<JobBlob> {
+    pub fn get_new_work(&mut self) -> Option<(Target, JobBlob)> {
         let current = self.work.lock().unwrap();
         if let Some(last_job) = self.last_job {
-            if last_job.0 == current.job_id {
+            if last_job == current.job_id {
                 return None;
             }
         }
-        self.last_job = Some((current.job_id, current.target));
-        Some(current.blob.clone())
+        self.last_job = Some(current.job_id);
+        Some((current.target, current.blob.clone()))
     }
 
-    pub fn result(&mut self, nonce: Nonce, result: &Hash) -> ClientResult<()> {
-        // TODO: handle state error gracefully
-        if self.last_job.unwrap().1.is_hit(result) {
-            let request_id = self.pool.lock().unwrap().submit(
-                &self.last_job.unwrap().0,
-                nonce,
-                result,
-            )?;
-            // TODO: errors
-            self.stats.share_submitted(request_id).unwrap();
-        }
+    pub fn submit(&mut self, nonce: Nonce, result: &Hash) -> ClientResult<()> {
+        let request_id = self.pool
+            .lock()
+            .unwrap()
+            .submit(&self.last_job.unwrap(), nonce, result)?;
+        // TODO: errors
+        self.stats.share_submitted(request_id).unwrap();
         Ok(())
     }
 }

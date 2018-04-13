@@ -30,13 +30,6 @@ pub struct Worker {
 /// Number of hashes to do in a batch, i.e. between checks for new work.
 const SINGLEHASH_BATCH_SIZE: usize = 16;
 
-fn set_nonce(v: &mut [u8], nonce: u32) {
-    v[39] = (nonce >> 0x18) as u8;
-    v[40] = (nonce >> 0x10) as u8;
-    v[41] = (nonce >> 0x08) as u8;
-    v[42] = (nonce >> 0x00) as u8;
-}
-
 impl Worker {
     pub fn new(worksource: WorkSource, stat_updater: StatUpdater) -> Self {
         Worker {
@@ -50,27 +43,29 @@ impl Worker {
         core_affinity::set_for_current(core_ids[cfg.cpu.0 as usize]);
         self.stat_updater.reset();
         let base_nonce = (cfg.cpu.into(): Nonce).0;
-        let mut blob = self.worksource.get_new_work().unwrap().0;
-        let mut state = CryptoNight::new();
+        let mut hasher = CryptoNight::new();
+        let (mut target, blob) = self.worksource.get_new_work().unwrap();
+        let mut blob = blob.0;
         loop {
-            let mut nonce = base_nonce;
-            set_nonce(&mut blob, nonce);
-            state.init(&blob);
+            let mut nonces = (base_nonce..).map(Nonce);
+            let mut hashes = hasher.hashes(blob, base_nonce..);
             loop {
-                for _ in 0..SINGLEHASH_BATCH_SIZE {
-                    let prev_nonce = nonce;
-                    nonce = nonce.wrapping_add(1);
-                    set_nonce(&mut blob, nonce);
-                    let prev_result = state.advance(&blob);
-                    self.worksource
-                        .result(Nonce(prev_nonce), &Hash::new(prev_result))
-                        .unwrap()
-                }
-
-                self.stat_updater.log_hashes(SINGLEHASH_BATCH_SIZE);
-
-                if let Some(new_blob) = self.worksource.get_new_work() {
-                    blob = new_blob.0;
+                let ws = &mut self.worksource;
+                let mut ct = 0;
+                (hashes
+                    .by_ref()
+                    .take(SINGLEHASH_BATCH_SIZE)
+                    .map(Hash::new)
+                    .inspect(|_| ct += 1)
+                    .zip(nonces.by_ref())
+                    .filter(|(h, n)| target.is_hit(h))
+                    .map(|(h, n)| ws.submit(n, &h))
+                    .collect(): Result<Vec<_>, _>)
+                    .unwrap();
+                self.stat_updater.log_hashes(ct);
+                if let Some((newt, newb)) = ws.get_new_work() {
+                    target = newt;
+                    blob = newb.0;
                     break;
                 }
             }

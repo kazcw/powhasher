@@ -18,12 +18,6 @@ pub struct CpuId(pub u8);
 #[derive(Debug, Serialize, Clone, Copy)]
 pub struct Nonce(#[serde(serialize_with = "hexbytes::u32_to_hex_padded")] pub u32);
 
-impl Nonce {
-    pub fn inc(&mut self) {
-        self.0 = self.0.wrapping_add(1);
-    }
-}
-
 impl From<CpuId> for Nonce {
     fn from(cpu: CpuId) -> Self {
         Nonce(u32::from(cpu.0) << 24)
