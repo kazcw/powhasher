@@ -2,8 +2,8 @@
 
 pub mod stats;
 
-use cryptonight::Hashstate;
 use core_affinity::{self, CoreId};
+use cryptonight::CryptoNight;
 use job::{CpuId, Hash, Nonce};
 use poolclient::WorkSource;
 use stats::StatUpdater;
@@ -51,7 +51,7 @@ impl Worker {
         self.stat_updater.reset();
         let base_nonce = (cfg.cpu.into(): Nonce).0;
         let mut blob = self.worksource.get_new_work().unwrap().0;
-        let mut state = Hashstate::new().unwrap();
+        let mut state = CryptoNight::new();
         loop {
             let mut nonce = base_nonce;
             set_nonce(&mut blob, nonce);

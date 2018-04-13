@@ -43,7 +43,7 @@ fn finalize(mut data: State) -> GenericArray<u8, U32> {
     }
 }
 
-pub struct Hashstate {
+pub struct CryptoNight {
     memory: Mmap<[i64x2; 1 << 14]>,
     state0: State,
     state1: State,
@@ -56,14 +56,14 @@ fn read_u64le(bytes: &[u8]) -> u64 {
         | ((bytes[6] as u64) << 48) | ((bytes[7] as u64) << 56)
 }
 
-impl Hashstate {
-    pub fn new() -> Result<Self, ()> {
-        Ok(Hashstate {
+impl CryptoNight {
+    pub fn new() -> Self {
+        CryptoNight {
             memory: Mmap::new_huge().expect("hugepage mmap"),
             state0: State::default(),
             state1: State::default(),
             tweak: u64::default(),
-        })
+        }
     }
 
     pub fn init(&mut self, blob: &[u8]) {
@@ -114,7 +114,7 @@ mod tests {
 
     #[test]
     fn test0() {
-        let mut state = Hashstate::new().unwrap();
+        let mut state = CryptoNight::new().unwrap();
         state.init(&INPUT0[..]);
         let out0 = state.advance(&INPUT1[..]);
         assert_eq!(&out0[..], &OUTPUT0[..]);
@@ -122,7 +122,7 @@ mod tests {
 
     #[test]
     fn test1() {
-        let mut state = Hashstate::new().unwrap();
+        let mut state = CryptoNight::new().unwrap();
         state.init(&INPUT0[..]);
         let _ = state.advance(&INPUT1[..]);
         let out1 = state.advance(&INPUT1[..]);
@@ -131,7 +131,7 @@ mod tests {
 
     #[test]
     fn test2() {
-        let mut state = Hashstate::new().unwrap();
+        let mut state = CryptoNight::new().unwrap();
         state.init(&INPUT0[..]);
         let _ = state.advance(&INPUT1[..]);
         let _ = state.advance(&INPUT2[..]);
@@ -141,7 +141,7 @@ mod tests {
 
     #[test]
     fn test3() {
-        let mut state = Hashstate::new().unwrap();
+        let mut state = CryptoNight::new().unwrap();
         state.init(&INPUT0[..]);
         let _ = state.advance(&INPUT1[..]);
         let _ = state.advance(&INPUT2[..]);
@@ -152,7 +152,7 @@ mod tests {
 
     #[test]
     fn test4() {
-        let mut state = Hashstate::new().unwrap();
+        let mut state = CryptoNight::new().unwrap();
         state.init(&INPUT0[..]);
         let _ = state.advance(&INPUT1[..]);
         let _ = state.advance(&INPUT2[..]);
