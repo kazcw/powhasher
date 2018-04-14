@@ -1,6 +1,7 @@
 default rel
 global cn_mix_v1_x1
 global cnl_mix_v0_x1
+global cnl_mix_v0_x2
 global cn_transplode
 
 section .text
@@ -82,8 +83,133 @@ align 16
 	ret
 %endmacro
 
+%macro defmix2 3		; ArenaSz Iters DoTweak
+	push   rbx
+	push   r12
+	push   r13
+	push   r14
+	push   r15
+%ifidn %3,cnv1
+        pxor   xmm5,xmm5
+        pinsrq xmm5,rdx,1
+%endif
+        push   rsi
+        movdqa xmm1,[rsi+0x00]
+        movdqa xmm2,[rsi+0x10]
+        pxor   xmm1,[rsi+0x20]
+        pxor   xmm2,[rsi+0x30]
+        movdqa xmm9,[rdx+0x00]
+        movdqa xmm10,[rdx+0x10]
+        pxor   xmm9,[rdx+0x20]
+        pxor   xmm10,[rdx+0x30]
+        mov    r10d,%2
+        movq   r8,xmm1
+        mov    ebx,r8d
+        movq   r14,xmm9
+        mov    ecx,r14d
+align 16
+.0:
+        and    ebx, %1 - 0x10
+        movdqa xmm0,[rdi+rbx]	;;
+        aesenc xmm0,xmm1	;;
+        pxor   xmm2,xmm0
+
+        and    ecx, %1 - 0x10
+        movdqa xmm8,[rdi+rcx+%1]	;;
+        aesenc xmm8,xmm9	;;
+        pxor   xmm10,xmm8
+%ifidn %3,cn
+        movdqa [rdi+rbx],xmm2
+        movdqa [rdi+rcx+%1],xmm10
+%elifidn %3,cnv1
+        movq   rax,xmm2
+        mov    [rdi+rbx],rax
+        pextrq rsi,xmm2,0x1
+        mov    eax,esi
+        and    eax,0x31000000
+        lea    ecx,[rax+rax*8]
+        shr    ecx,26
+        and    ecx,0xE
+        mov    eax,0x13174000
+        shl    eax,cl
+        and    eax,0x30000000
+        xor    rsi,rax
+        mov    [rdi+rbx+8],rsi
+%else
+%error "unknown variant"
+%endif
+        movq   rsi,xmm0		;;
+        mov    rax,rsi
+        and    esi,%1 - 0x10
+        mov    r9,[rdi+rsi]	;;
+
+	movq   r11,xmm8
+	mov    r12,r11
+	and    r11d,%1 - 0x10
+	mov    r13,[rdi+r11+%1]
+
+        mul    r9		;;
+        lea    ebx,[r8+rdx]
+        xor    ebx,r9d
+        add    r8d,edx
+        xor    r8d,r9d
+%ifidn %3,cn
+        movdqa xmm4,[rdi+rsi]
+%elifidn %3,cnv1
+        movdqa xmm4,xmm5
+        pxor   xmm4,[rdi+rsi]
+%else
+%error "unknown variant"
+%endif
+        movq   xmm3,rdx		;;
+        pinsrq xmm3,rax,0x1	;;
+
+	mov    rax,r12
+        mul    r13		;;
+        lea    ecx,[r14+rdx+%1]
+        xor    ecx,r13d
+        add    r14d,edx
+        xor    r14d,r13d
+%ifidn %3,cn
+        movdqa xmm12,[rdi+r11+%1]
+%elifidn %3,cnv1
+        movdqa xmm4,xmm5
+        pxor   xmm4,[rdi+rsi]
+%else
+%error "unknown variant"
+%endif
+        movq   xmm11,rdx	;;
+        pinsrq xmm11,rax,0x1	;;
+
+        paddq  xmm1,xmm3	;;
+        paddq  xmm9,xmm11	;;
+%ifidn %3,cnv1
+        pxor   xmm1,xmm5	;;
+        pxor   xmm9,xmm13	;;
+%endif
+
+        movdqa [rdi+rsi],xmm1	;;
+        pxor   xmm1,xmm4	;;
+
+        movdqa [rdi+r11+%1],xmm9 ;; 
+        pxor   xmm9,xmm12	;;
+
+        dec    r10d
+        movdqa xmm2,xmm0
+        movdqa xmm10,xmm8
+        jne .0
+        pop    rsi
+	pop    r15
+	pop    r14
+	pop    r13
+	pop    r12
+	pop    rbx
+	ret
+%endmacro
+
 cn_mix_v1_x1: defmix 0x200000, 0x80000, cnv1
 cnl_mix_v0_x1: defmix 0x100000, 0x40000, cn
+cnl_mix_v0_x2: defmix2 0x100000, 0x40000, cn
 
 cn_transplode:
 	movdqa xmm0,[rcx+0x00]
