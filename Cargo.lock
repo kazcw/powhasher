@@ -125,6 +125,8 @@ dependencies = [
  "jh-x86_64 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "keccak 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.34 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde 1.0.34 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde_derive 1.0.34 (registry+https://github.com/rust-lang/crates.io-index)",
  "sha3 0.7.3 (git+git://github.com/kazcw/RustCrypto-hashes)",
  "skein 0.2.2 (git+git://github.com/kazcw/RustCrypto-hashes)",
 ]

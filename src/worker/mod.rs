@@ -3,23 +3,16 @@
 pub mod stats;
 
 use core_affinity::{self, CoreId};
-use cryptonight::CryptoNight;
+use cryptonight::{self, Hasher, HasherConfig};
 use job::{CpuId, Hash, Nonce};
 use poolclient::WorkSource;
 use stats::StatUpdater;
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
-pub enum Hasher {
-    #[serde(rename = "cn-cpu-aesni")]
-    CnCpuAesni { multi: usize },
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
 pub struct Config {
     cpu: CpuId,
-    hasher: Hasher,
+    hasher: HasherConfig,
 }
 
 pub struct Worker {
@@ -43,12 +36,11 @@ impl Worker {
         core_affinity::set_for_current(core_ids[cfg.cpu.0 as usize]);
         self.stat_updater.reset();
         let base_nonce = (cfg.cpu.into(): Nonce).0;
-        let mut hasher = CryptoNight::new();
         let (mut target, blob) = self.worksource.get_new_work().unwrap();
         let mut blob = blob.0;
+        let mut hashes = cryptonight::hasher(cfg.hasher, blob, base_nonce..);
         loop {
             let mut nonces = (base_nonce..).map(Nonce);
-            let mut hashes = hasher.hashes(blob, base_nonce..);
             loop {
                 let ws = &mut self.worksource;
                 let mut ct = 0;
@@ -69,6 +61,7 @@ impl Worker {
                     break;
                 }
             }
+            hashes.set_blob(blob, base_nonce..);
         }
     }
 }

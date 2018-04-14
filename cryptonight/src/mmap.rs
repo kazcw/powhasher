@@ -26,6 +26,12 @@ impl<T> Mmap<T> {
     }
 }
 
+impl<T> Default for Mmap<T> {
+    fn default() -> Self {
+        Mmap::new_huge().expect("hugepage mmap")
+    }
+}
+
 impl<T> Drop for Mmap<T> {
     fn drop(&mut self) {
         unsafe {
