@@ -19,6 +19,7 @@ section .text
 %endmacro
 
 %macro defmix 3			; ArenaSz Iters DoTweak
+	push   rbp
 	push   rbx
         pxor   xmm5,xmm5
         pinsrq xmm5,rdx,1
@@ -82,12 +83,11 @@ align 16
 	xor    edx,edx
 	mov    rax,[rdi+rbx]
 	mov    esi,[rdi+rbx+8]	;; 
-	mov    ecx,esi
+	lea    rbp,[rdi+rbx]
+	mov    ebx,esi
 	or     esi,5		;; 
 	idiv   rsi		;; 
-	mov    esi,ebx
-	mov    ebx,ecx
-	xor    [rdi+rsi],rax
+	xor    [rbp],rax
 	xor    ebx,eax		;; 
 %endif
         dec    r10d
@@ -95,6 +95,7 @@ align 16
         jne .0
         pop    rsi
 	pop    rbx
+	pop    rbp
 	ret
 %endmacro
 
