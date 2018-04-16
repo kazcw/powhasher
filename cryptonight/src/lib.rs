@@ -68,6 +68,8 @@ pub enum HasherConfig {
     CnLAesniX1,
     #[serde(rename = "cnl-aesni-x2")]
     CnLAesniX2,
+    #[serde(rename = "cnh-aesni-x1")]
+    CnHAesniX1,
 }
 
 pub trait Hasher<Noncer> {
@@ -91,6 +93,7 @@ pub fn hasher<Noncer: Iterator<Item = u32> + 'static>(
         HasherConfig::Cn7AesniX1 => Box::new(CryptoNight::new(blob, noncer)),
         HasherConfig::CnLAesniX1 => Box::new(CryptoNightLite::new(blob, noncer)),
         HasherConfig::CnLAesniX2 => Box::new(CryptoNightLite2::new(blob, noncer)),
+        HasherConfig::CnHAesniX1 => Box::new(CryptoNightHeavy::new(blob, noncer)),
     }
 }
 
@@ -269,6 +272,61 @@ impl<Noncer: Iterator<Item = u32>> Hasher<Noncer> for CryptoNightLite2<Noncer> {
         let res = self.transplode();
         self.result = Some(res[1]);
         res[0]
+    }
+}
+
+#[derive(Default)]
+pub struct CryptoNightHeavy<Noncer> {
+    memory: Mmap<[i64x2; 1 << 18]>,
+    blob: Vec<u8>,
+    state0: State,
+    state1: State,
+    noncer: Noncer,
+}
+
+impl<Noncer: Iterator<Item = u32>> CryptoNightHeavy<Noncer> {
+    fn transplode(&mut self) -> GenericArray<u8, U32> {
+        set_nonce(&mut self.blob, self.noncer.next().unwrap());
+        self.state1 = State::from(sha3::Keccak256Full::digest(&self.blob));
+        cn_aesni::transplode_heavy(
+            (&mut self.state0).into(),
+            &mut self.memory[..],
+            (&self.state1).into(),
+        );
+        let result = finalize(self.state0);
+        self.state0 = self.state1;
+        result
+    }
+
+    fn mix(&mut self) {
+        cn_aesni::mix_heavy(&mut self.memory, (&self.state0).into());
+    }
+}
+
+impl<Noncer: Iterator<Item = u32>> CryptoNightHeavy<Noncer> {
+    pub fn new(blob: Vec<u8>, noncer: Noncer) -> Self {
+        let mut res = Self {
+            memory: Default::default(),
+            blob,
+            state0: Default::default(),
+            state1: Default::default(),
+            noncer,
+        };
+        res.transplode();
+        res
+    }
+}
+
+impl<Noncer: Iterator<Item = u32>> Hasher<Noncer> for CryptoNightHeavy<Noncer> {
+    fn set_blob(&mut self, blob: Vec<u8>, noncer: Noncer) {
+        self.blob = blob;
+        self.noncer = noncer;
+        self.transplode();
+    }
+
+    fn next_hash(&mut self) -> GenericArray<u8, U32> {
+        self.mix();
+        self.transplode()
     }
 }
 

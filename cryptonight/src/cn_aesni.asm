@@ -2,15 +2,21 @@ default rel
 global cn_mix_v1_x1
 global cnl_mix_v0_x1
 global cnl_mix_v0_x2
+global cnh_mix
 global cn_transplode
+global cnh_transplode
 
 section .text
 
-;mov ebx, 111
-;.byte 0x64, 0x67, 0x90
+%macro iaca_start 0
+	mov ebx, 111
+	db 0x64, 0x67, 0x90
+%endmacro
 
-;mov ebx, 222
-;.byte 0x64, 0x67, 0x90
+%macro iaca_end 0
+	mov ebx, 222
+	db 0x64, 0x67, 0x90
+%endmacro
 
 %macro defmix 3			; ArenaSz Iters DoTweak
 	push   rbx
@@ -25,14 +31,13 @@ section .text
         mov    r10d,%2
         mov    rbx,r8
 align 16
+iaca_start
 .0:
-        and    ebx, %1 - 0x10
+        and    ebx, %1 - 0x10   ;; 
         movdqa xmm0,[rdi+rbx]	;;
         aesenc xmm0,xmm1	;;
         pxor   xmm2,xmm0
-%ifidn %3,cn
-        movdqa [rdi+rbx],xmm2
-%elifidn %3,cnv1
+%ifidn %3,cnv1
         movq   rax,xmm2
         mov    [rdi+rbx],rax
         pextrq rsi,xmm2,0x1
@@ -47,7 +52,7 @@ align 16
         xor    rsi,rax
         mov    [rdi+rbx+8],rsi
 %else
-%error "unknown variant"
+        movdqa [rdi+rbx],xmm2
 %endif
 
         movq   rsi,xmm0		;;
@@ -59,13 +64,11 @@ align 16
         xor    ebx,r9d
         add    r8d,edx
         xor    r8d,r9d
-%ifidn %3,cn
-        movdqa xmm4,[rdi+rsi]
-%elifidn %3,cnv1
+%ifidn %3,cnv1
         movdqa xmm4,xmm5
         pxor   xmm4,[rdi+rsi]
 %else
-%error "unknown variant"
+        movdqa xmm4,[rdi+rsi]
 %endif
         movq   xmm3,rdx		;;
         pinsrq xmm3,rax,0x1	;;
@@ -74,10 +77,24 @@ align 16
         pxor   xmm1,xmm5	;;
 %endif
         movdqa [rdi+rsi],xmm1	;;
-        pxor   xmm1,xmm4	;;
+        pxor   xmm1,xmm4
+%ifidn %3,cnh
+        and    ebx, %1 - 0x10	;; 
+	xor    edx,edx
+	mov    rax,[rdi+rbx]
+	mov    esi,[rdi+rbx+8]	;; 
+	mov    ecx,esi
+	or     esi,5		;; 
+	idiv   rsi		;; 
+	mov    esi,ebx
+	mov    ebx,ecx
+	xor    [rdi+rsi],rax
+	xor    ebx,eax		;; 
+%endif
         dec    r10d
         movdqa xmm2,xmm0
         jne .0
+iaca_end
         pop    rsi
 	pop    rbx
 	ret
@@ -118,10 +135,7 @@ align 16
         movdqa xmm8,[rdi+rcx+%1]	;;
         aesenc xmm8,xmm9	;;
         pxor   xmm10,xmm8
-%ifidn %3,cn
-        movdqa [rdi+rbx],xmm2
-        movdqa [rdi+rcx+%1],xmm10
-%elifidn %3,cnv1
+%ifidn %3,cnv1
         movq   rax,xmm2
         mov    [rdi+rbx],rax
         pextrq rsi,xmm2,0x1
@@ -136,7 +150,8 @@ align 16
         xor    rsi,rax
         mov    [rdi+rbx+8],rsi
 %else
-%error "unknown variant"
+        movdqa [rdi+rbx],xmm2
+        movdqa [rdi+rcx+%1],xmm10
 %endif
         movq   rsi,xmm0		;;
         mov    rax,rsi
@@ -153,13 +168,11 @@ align 16
         xor    ebx,r9d
         add    r8d,edx
         xor    r8d,r9d
-%ifidn %3,cn
-        movdqa xmm4,[rdi+rsi]
-%elifidn %3,cnv1
+%ifidn %3,cnv1
         movdqa xmm4,xmm5
         pxor   xmm4,[rdi+rsi]
 %else
-%error "unknown variant"
+        movdqa xmm4,[rdi+rsi]
 %endif
         movq   xmm3,rdx		;;
         pinsrq xmm3,rax,0x1	;;
@@ -170,13 +183,11 @@ align 16
         xor    ecx,r13d
         add    r14d,edx
         xor    r14d,r13d
-%ifidn %3,cn
-        movdqa xmm12,[rdi+r11+%1]
-%elifidn %3,cnv1
+%ifidn %3,cnv1
         movdqa xmm4,xmm5
         pxor   xmm4,[rdi+rsi]
 %else
-%error "unknown variant"
+        movdqa xmm12,[rdi+r11+%1]
 %endif
         movq   xmm11,rdx	;;
         pinsrq xmm11,rax,0x1	;;
@@ -207,12 +218,17 @@ align 16
 	ret
 %endmacro
 
+cnh_mix: defmix 0x400000, 0x40000, cnh
 cn_mix_v1_x1: defmix 0x200000, 0x80000, cnv1
 cnl_mix_v0_x1: defmix 0x100000, 0x40000, cn
 cnl_mix_v0_x2: defmix2 0x100000, 0x40000, cn
 
-cn_transplode:
-	movdqa xmm0,[rcx+0x00]
+%macro defsplode 1
+	push   rbx
+	push   rcx
+	push   rdx
+	;; implode into xmm 0-7
+	movdqa xmm0,[rcx]
 	movdqa xmm1,[rcx+0x10]
 	movdqa xmm2,[rcx+0x20]
 	movdqa xmm3,[rcx+0x30]
@@ -220,7 +236,49 @@ cn_transplode:
 	movdqa xmm5,[rcx+0x50]
 	movdqa xmm6,[rcx+0x60]
 	movdqa xmm7,[rcx+0x70]
-	movdqa xmm8,[r8+0x00]
+;;; cnh: extra im pass
+%ifidn %1,cnh
+align 16
+.2:
+	pxor   xmm0,[rdx]
+	pxor   xmm1,[rdx+0x10]
+	pxor   xmm2,[rdx+0x20]
+	pxor   xmm3,[rdx+0x30]
+	pxor   xmm4,[rdx+0x40]
+	pxor   xmm5,[rdx+0x50]
+	pxor   xmm6,[rdx+0x60]
+	pxor   xmm7,[rdx+0x70]
+	xor    eax,eax
+.3:
+	movdqa xmm8,[rdi+rax]
+	aesenc xmm0,xmm8
+	aesenc xmm1,xmm8
+	aesenc xmm2,xmm8
+	aesenc xmm3,xmm8
+	aesenc xmm4,xmm8
+	aesenc xmm5,xmm8
+	aesenc xmm6,xmm8
+	aesenc xmm7,xmm8
+	movdqa xmm8,xmm0
+	pxor   xmm0,xmm1
+	pxor   xmm1,xmm2
+	pxor   xmm2,xmm3
+	pxor   xmm3,xmm4
+	pxor   xmm4,xmm5
+	pxor   xmm5,xmm6
+	pxor   xmm6,xmm7
+	pxor   xmm7,xmm8
+	add    eax,0x10
+	cmp    eax,0xa0
+	jne .3
+	add    rdx,0x80
+	cmp    r9,rdx
+	jne .2
+	pop    rdx
+	push   rdx
+%endif
+	;; explode from xmm 8-15
+	movdqa xmm8,[r8]
 	movdqa xmm9,[r8+0x10]
 	movdqa xmm10,[r8+0x20]
 	movdqa xmm11,[r8+0x30]
@@ -228,9 +286,39 @@ cn_transplode:
 	movdqa xmm13,[r8+0x50]
 	movdqa xmm14,[r8+0x60]
 	movdqa xmm15,[r8+0x70]
-	push   rbx
-	push   rcx
-	push   rdx
+;;; cnh: mix up ex keys
+%ifidn %1,cnh
+	mov    r10d,16
+	movdqa [rcx],xmm0
+.mixprop_ex:
+	xor    eax,eax
+.mixprop_ex_round:
+	movdqa xmm0,[rsi+rax]
+	aesenc xmm8,xmm0
+	aesenc xmm9,xmm0
+	aesenc xmm10,xmm0
+	aesenc xmm11,xmm0
+	aesenc xmm12,xmm0
+	aesenc xmm13,xmm0
+	aesenc xmm14,xmm0
+	aesenc xmm15,xmm0
+	add    eax,0x10
+	cmp    eax,0xa0
+	jne .mixprop_ex_round
+	movdqa xmm0,xmm8
+	pxor   xmm8,xmm9
+	pxor   xmm9,xmm10
+	pxor   xmm10,xmm11
+	pxor   xmm11,xmm12
+	pxor   xmm12,xmm13
+	pxor   xmm13,xmm14
+	pxor   xmm14,xmm15
+	pxor   xmm15,xmm0
+	dec    r10d
+	jnz .mixprop_ex
+	movdqa xmm0,[rcx]
+%endif
+;;; main transplode
 align 16
 .0:
 	pxor   xmm0,[rdx]
@@ -264,6 +352,18 @@ align 16
 	add    eax,0x10
 	cmp    eax,0xa0
 	jne .1
+;;; cnh: extra im mixing
+%ifidn %1,cnh
+	movdqa [rdx],xmm0
+	pxor   xmm0,xmm1
+	pxor   xmm1,xmm2
+	pxor   xmm2,xmm3
+	pxor   xmm3,xmm4
+	pxor   xmm4,xmm5
+	pxor   xmm5,xmm6
+	pxor   xmm6,xmm7
+	pxor   xmm7,[rdx]
+%endif
 	movdqa [rdx+0x00],xmm8
 	movdqa [rdx+0x10],xmm9
 	movdqa [rdx+0x20],xmm10
@@ -275,6 +375,36 @@ align 16
 	add    rdx,0x80
 	cmp    r9,rdx
 	jne .0
+;;; cnh: extra im mixing
+%ifidn %1,cnh
+	mov    r10d,16
+.mixprop_im:
+	xor    eax,eax
+.mixprop_im_round:
+	movdqa xmm8,[rsi+rax]
+	aesenc xmm0,xmm8
+	aesenc xmm1,xmm8
+	aesenc xmm2,xmm8
+	aesenc xmm3,xmm8
+	aesenc xmm4,xmm8
+	aesenc xmm5,xmm8
+	aesenc xmm6,xmm8
+	aesenc xmm7,xmm8
+	add    eax,0x10
+	cmp    eax,0xa0
+	jne .mixprop_im_round
+	movdqa xmm8,xmm0
+	pxor   xmm0,xmm1
+	pxor   xmm1,xmm2
+	pxor   xmm2,xmm3
+	pxor   xmm3,xmm4
+	pxor   xmm4,xmm5
+	pxor   xmm5,xmm6
+	pxor   xmm6,xmm7
+	pxor   xmm7,xmm8
+	dec    r10d
+	jnz .mixprop_im
+%endif
 	pop    rdx
 	pop    rcx
 	pop    rbx
@@ -287,3 +417,7 @@ align 16
 	movntdq [rcx+0x60],xmm6
 	movntdq [rcx+0x70],xmm7
 	ret
+%endmacro
+
+cn_transplode: defsplode cn
+cnh_transplode: defsplode cnh
