@@ -354,6 +354,11 @@ mod tests {
     const LITEOU2: &[u8] = hex!("f828ff6bf19a6e72a77319808e43f745f90f47eceb698e4319d2484404b081e8");
     const LITEOU3: &[u8] = hex!("61e3cb5e046ae4ac5d03f8ec6bd7a9a80d5e2573817429d1624735f66aff4b11");
     const LITEOU4: &[u8] = hex!("12c2f26b89cc514707ac0fb953f1f72581eb468de2a5d4d4cf95c0d1b32f7285");
+    const HEAVOU0: &[u8] = hex!("8e9b0d37a75eea071c224d10522b9e12a7f1a96a317efd92db41e593133574a4");
+    const HEAVOU1: &[u8] = hex!("3ec94bf7800410ff50de0767196bc60d90e9598a7c70a7d27f4c090d7f25377a");
+    const HEAVOU2: &[u8] = hex!("f68db02d511e3f6641d770ca907157f2d68e7e08f95fe349ed421e9607eb3d6d");
+    const HEAVOU3: &[u8] = hex!("04b33b61e528836cc825e76ff11967b792bf026129261e05b846e241c286140e");
+    const HEAVOU4: &[u8] = hex!("dfa4fc4da8edc4bbf311e9eacaebfbf91be64061ded4e71d3c9347337a47e7ac");
 
     fn test_cn(input: &[u8], output: &[u8], nonce: u32) {
         assert_eq!(
@@ -375,6 +380,15 @@ mod tests {
     fn test_cnl_x2(input: &[u8], output: &[u8], nonce: u32) {
         assert_eq!(
             &((&mut CryptoNightLite2::new(input.iter().cloned().collect(), nonce..)
+                as &mut Hasher<_>)
+                .next_hash())[..],
+            output
+        );
+    }
+
+    fn test_cnh(input: &[u8], output: &[u8], nonce: u32) {
+        assert_eq!(
+            &((&mut CryptoNightHeavy::new(input.iter().cloned().collect(), nonce..)
                 as &mut Hasher<_>)
                 .next_hash())[..],
             output
@@ -467,5 +481,30 @@ mod tests {
         {
             assert_eq!(cnlx2, cnl);
         }
+    }
+
+    #[test]
+    fn test_cnh_0() {
+        test_cnh(INPUT0, HEAVOU0, 0);
+    }
+
+    #[test]
+    fn test_cnh_1() {
+        test_cnh(INPUT1, HEAVOU1, 0);
+    }
+
+    #[test]
+    fn test_cnh_2() {
+        test_cnh(INPUT2, HEAVOU2, 0x450525cf);
+    }
+
+    #[test]
+    fn test_cnh_3() {
+        test_cnh(INPUT3, HEAVOU3, 0x777323f4);
+    }
+
+    #[test]
+    fn test_cnh_4() {
+        test_cnh(INPUT4, HEAVOU4, 0xa885c3cb);
     }
 }
