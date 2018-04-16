@@ -29,16 +29,16 @@ extern crate generic_array;
 extern crate typenum;
 
 mod hexbytes;
+mod job;
 mod poolclient;
 mod worker;
-mod job;
 
 use std::fs::File;
 use std::mem;
-use std::time::Duration;
 use std::thread;
-use worker::Worker;
+use std::time::Duration;
 use worker::stats;
+use worker::Worker;
 
 const AGENT: &str = "pow#er/0.2.0";
 
