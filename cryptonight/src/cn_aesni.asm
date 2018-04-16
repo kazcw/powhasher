@@ -31,7 +31,6 @@ section .text
         mov    r10d,%2
         mov    rbx,r8
 align 16
-iaca_start
 .0:
         and    ebx, %1 - 0x10   ;; 
         movdqa xmm0,[rdi+rbx]	;;
@@ -94,7 +93,6 @@ iaca_start
         dec    r10d
         movdqa xmm2,xmm0
         jne .0
-iaca_end
         pop    rsi
 	pop    rbx
 	ret
