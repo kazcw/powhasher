@@ -13,6 +13,7 @@
 #![feature(try_from)]
 #![feature(type_ascription)]
 
+extern crate clap;
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;
@@ -59,7 +60,22 @@ fn main() {
         std::process::exit(1);
     }));
 
-    let cfg: Config = serde_json::from_reader(File::open("./config.json").unwrap()).unwrap();
+    let args = clap::App::new("Pow#er")
+        .author("Kaz Wesley <kaz@lambdaverse.org>")
+        .arg(
+            clap::Arg::with_name("config")
+                .short("c")
+                .long("config")
+                .value_name("FILE")
+                .help("Sets a custom config file")
+                .takes_value(true),
+        )
+        .get_matches();
+
+    let cfg: Config = File::open(args.value_of("config").unwrap_or("./config.json"))
+        .map(serde_json::from_reader)
+        .unwrap()
+        .unwrap();
     debug!("config: {:?}", &cfg);
 
     let (worksource, poolstats) = poolclient::run_thread(&cfg.pool, AGENT).unwrap();
