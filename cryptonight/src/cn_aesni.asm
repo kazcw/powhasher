@@ -239,9 +239,11 @@ StateState { ready, recycling }
 %endif
 
 %macro defsplode 1
+	push   rbp
 	push   rbx
 	push   rcx
 	push   rdx
+	mov    rbp,rdx
 	;; implode into xmm 0-7
 	movaps xmm0,[rcx]
 	movaps xmm1,[rcx+0x10]
@@ -255,14 +257,14 @@ StateState { ready, recycling }
 %ifidn %1,cnh
 align 16
 .2:
-	pxor   xmm0,[rdx]
-	pxor   xmm1,[rdx+0x10]
-	pxor   xmm2,[rdx+0x20]
-	pxor   xmm3,[rdx+0x30]
-	pxor   xmm4,[rdx+0x40]
-	pxor   xmm5,[rdx+0x50]
-	pxor   xmm6,[rdx+0x60]
-	pxor   xmm7,[rdx+0x70]
+	pxor   xmm0,[rbp]
+	pxor   xmm1,[rbp+0x10]
+	pxor   xmm2,[rbp+0x20]
+	pxor   xmm3,[rbp+0x30]
+	pxor   xmm4,[rbp+0x40]
+	pxor   xmm5,[rbp+0x50]
+	pxor   xmm6,[rbp+0x60]
+	pxor   xmm7,[rbp+0x70]
 	xor    eax,eax
 .3:
 	movaps xmm8,[rdi+rax]
@@ -286,11 +288,11 @@ align 16
 	add    eax,0x10
 	cmp    eax,0xa0
 	jne .3
-	add    rdx,0x80
-	cmp    r9,rdx
+	add    rbp,0x80
+	cmp    r9,rbp
 	jne .2
-	pop    rdx
-	push   rdx
+	pop    rbp
+	push   rbp
 %endif
 	;; explode from xmm 8-15
 	movaps xmm8,[r8]
@@ -336,16 +338,16 @@ align 16
 ;;; main transplode
 align 16
 .0:
-	pxor   xmm0,[rdx]
-	pxor   xmm1,[rdx+0x10]
-	pxor   xmm2,[rdx+0x20]
-	pxor   xmm3,[rdx+0x30]
-	pxor   xmm4,[rdx+0x40]
-	pxor   xmm5,[rdx+0x50]
-	pxor   xmm6,[rdx+0x60]
-	pxor   xmm7,[rdx+0x70]
+	pxor   xmm0,[rbp]
+	pxor   xmm1,[rbp+0x10]
+	pxor   xmm2,[rbp+0x20]
+	pxor   xmm3,[rbp+0x30]
+	pxor   xmm4,[rbp+0x40]
+	pxor   xmm5,[rbp+0x50]
+	pxor   xmm6,[rbp+0x60]
+	pxor   xmm7,[rbp+0x70]
 	xor    eax,eax
-	movaps [rdx],xmm8
+	movaps [rbp],xmm8
 align 16
 .1im:
 	movaps xmm8,[rdi+rax]
@@ -360,8 +362,8 @@ align 16
 	add    eax,0x10
 	cmp    eax,0xa0
 	jne .1im
-	movaps xmm8,[rdx]
-	movaps [rdx],xmm0
+	movaps xmm8,[rbp]
+	movaps [rbp],xmm0
 	xor    eax,eax
 align 16
 .1ex:
@@ -377,10 +379,10 @@ align 16
 	add    eax,0x10
 	cmp    eax,0xa0
 	jne .1ex
-	movaps xmm0,[rdx]
+	movaps xmm0,[rbp]
 ;;; cnh: extra im mixing
 %ifidn %1,cnh
-	movaps [rdx],xmm0
+	movaps [rbp],xmm0
 	pxor   xmm0,xmm1
 	pxor   xmm1,xmm2
 	pxor   xmm2,xmm3
@@ -388,18 +390,18 @@ align 16
 	pxor   xmm4,xmm5
 	pxor   xmm5,xmm6
 	pxor   xmm6,xmm7
-	pxor   xmm7,[rdx]
+	pxor   xmm7,[rbp]
 %endif
-	movaps [rdx+0x00],xmm8
-	movaps [rdx+0x10],xmm9
-	movaps [rdx+0x20],xmm10
-	movaps [rdx+0x30],xmm11
-	movaps [rdx+0x40],xmm12
-	movaps [rdx+0x50],xmm13
-	movaps [rdx+0x60],xmm14
-	movaps [rdx+0x70],xmm15
-	add    rdx,0x80
-	cmp    r9,rdx
+	movaps [rbp+0x00],xmm8
+	movaps [rbp+0x10],xmm9
+	movaps [rbp+0x20],xmm10
+	movaps [rbp+0x30],xmm11
+	movaps [rbp+0x40],xmm12
+	movaps [rbp+0x50],xmm13
+	movaps [rbp+0x60],xmm14
+	movaps [rbp+0x70],xmm15
+	add    rbp,0x80
+	cmp    r9,rbp
 	jne .0
 ;;; cnh: extra im mixing
 %ifidn %1,cnh
@@ -434,6 +436,7 @@ align 16
 	pop    rdx
 	pop    rcx
 	pop    rbx
+	pop    rbp
 	movntdq [rcx+0x00],xmm0
 	movntdq [rcx+0x10],xmm1
 	movntdq [rcx+0x20],xmm2
