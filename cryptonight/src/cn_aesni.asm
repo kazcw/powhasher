@@ -356,28 +356,39 @@ align 16
 	pxor   xmm6,[rdx+0x60]
 	pxor   xmm7,[rdx+0x70]
 	xor    eax,eax
-.1:
-	lea    rbx,[rdi+rax]
-	lea    rcx,[rsi+rax]
-	aesenc xmm0,[rbx]
-	aesenc xmm8,[rcx]
-	aesenc xmm1,[rbx]
-	aesenc xmm9,[rcx]
-	aesenc xmm2,[rbx]
-	aesenc xmm10,[rcx]
-	aesenc xmm3,[rbx]
-	aesenc xmm11,[rcx]
-	aesenc xmm4,[rbx]
-	aesenc xmm12,[rcx]
-	aesenc xmm5,[rbx]
-	aesenc xmm13,[rcx]
-	aesenc xmm6,[rbx]
-	aesenc xmm14,[rcx]
-	aesenc xmm7,[rbx]
-	aesenc xmm15,[rcx]
+	movaps [rdx],xmm8
+align 16
+.1im:
+	movaps xmm8,[rdi+rax]
+	aesenc xmm0,xmm8
+	aesenc xmm1,xmm8
+	aesenc xmm2,xmm8
+	aesenc xmm3,xmm8
+	aesenc xmm4,xmm8
+	aesenc xmm5,xmm8
+	aesenc xmm6,xmm8
+	aesenc xmm7,xmm8
 	add    eax,0x10
 	cmp    eax,0xa0
-	jne .1
+	jne .1im
+	movaps xmm8,[rdx]
+	movaps [rdx],xmm0
+	xor    eax,eax
+align 16
+.1ex:
+	movaps xmm0,[rsi+rax]
+	aesenc xmm8,xmm0
+	aesenc xmm9,xmm0
+	aesenc xmm10,xmm0
+	aesenc xmm11,xmm0
+	aesenc xmm12,xmm0
+	aesenc xmm13,xmm0
+	aesenc xmm14,xmm0
+	aesenc xmm15,xmm0
+	add    eax,0x10
+	cmp    eax,0xa0
+	jne .1ex
+	movaps xmm0,[rdx]
 ;;; cnh: extra im mixing
 %ifidn %1,cnh
 	movaps [rdx],xmm0
