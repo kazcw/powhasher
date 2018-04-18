@@ -24,8 +24,8 @@ section .text
         pxor   xmm5,xmm5
         pinsrq xmm5,rdx,1
         push   rsi
-        movdqa xmm1,[rsi+0x00]
-        movdqa xmm2,[rsi+0x10]
+        movaps xmm1,[rsi+0x00]
+        movaps xmm2,[rsi+0x10]
         pxor   xmm1,[rsi+0x20]
         pxor   xmm2,[rsi+0x30]
         movq   r8,xmm1
@@ -34,7 +34,7 @@ section .text
 align 16
 .0:
         and    ebx, %1 - 0x10   ;; 
-        movdqa xmm0,[rdi+rbx]	;;
+        movaps xmm0,[rdi+rbx]	;;
         aesenc xmm0,xmm1	;;
         pxor   xmm2,xmm0
 %ifidn %3,cnv1
@@ -52,7 +52,7 @@ align 16
         xor    rsi,rax
         mov    [rdi+rbx+8],rsi
 %else
-        movdqa [rdi+rbx],xmm2
+        movaps [rdi+rbx],xmm2
 %endif
 
         movq   rsi,xmm0		;;
@@ -68,7 +68,7 @@ align 16
         movdqa xmm4,xmm5
         pxor   xmm4,[rdi+rsi]
 %else
-        movdqa xmm4,[rdi+rsi]
+        movaps xmm4,[rdi+rsi]
 %endif
         movq   xmm3,rdx		;;
         pinsrq xmm3,rax,0x1	;;
@@ -87,7 +87,7 @@ align 16
 %ifidn %3,cnv1
         pxor   xmm1,xmm5	;;
 %endif
-        movdqa [rdi+rsi],xmm1	;;
+        movaps [rdi+rsi],xmm1	;;
         pxor   xmm1,xmm4
 %ifidn %3,cnh
         and    ebx, %1 - 0x10	;; 
@@ -121,12 +121,12 @@ align 16
         pinsrq xmm5,rdx,1
 %endif
         push   rsi
-        movdqa xmm1,[rsi+0x00]
-        movdqa xmm2,[rsi+0x10]
+        movaps xmm1,[rsi+0x00]
+        movaps xmm2,[rsi+0x10]
         pxor   xmm1,[rsi+0x20]
         pxor   xmm2,[rsi+0x30]
-        movdqa xmm9,[rdx+0x00]
-        movdqa xmm10,[rdx+0x10]
+        movaps xmm9,[rdx+0x00]
+        movaps xmm10,[rdx+0x10]
         pxor   xmm9,[rdx+0x20]
         pxor   xmm10,[rdx+0x30]
         mov    r10d,%2
@@ -137,12 +137,12 @@ align 16
 align 16
 .0:
         and    ebx, %1 - 0x10
-        movdqa xmm0,[rdi+rbx]	;;
+        movaps xmm0,[rdi+rbx]	;;
         aesenc xmm0,xmm1	;;
         pxor   xmm2,xmm0
 
         and    ecx, %1 - 0x10
-        movdqa xmm8,[rdi+rcx+%1]	;;
+        movaps xmm8,[rdi+rcx+%1]	;;
         aesenc xmm8,xmm9	;;
         pxor   xmm10,xmm8
 %ifidn %3,cnv1
@@ -160,8 +160,8 @@ align 16
         xor    rsi,rax
         mov    [rdi+rbx+8],rsi
 %else
-        movdqa [rdi+rbx],xmm2
-        movdqa [rdi+rcx+%1],xmm10
+        movaps [rdi+rbx],xmm2
+        movaps [rdi+rcx+%1],xmm10
 %endif
         movq   rsi,xmm0		;;
         mov    rax,rsi
@@ -182,7 +182,7 @@ align 16
         movdqa xmm4,xmm5
         pxor   xmm4,[rdi+rsi]
 %else
-        movdqa xmm4,[rdi+rsi]
+        movaps xmm4,[rdi+rsi]
 %endif
         movq   xmm3,rdx		;;
         pinsrq xmm3,rax,0x1	;;
@@ -197,7 +197,7 @@ align 16
         movdqa xmm4,xmm5
         pxor   xmm4,[rdi+rsi]
 %else
-        movdqa xmm12,[rdi+r11+%1]
+        movaps xmm12,[rdi+r11+%1]
 %endif
         movq   xmm11,rdx	;;
         pinsrq xmm11,rax,0x1	;;
@@ -209,10 +209,10 @@ align 16
         pxor   xmm9,xmm13	;;
 %endif
 
-        movdqa [rdi+rsi],xmm1	;;
+        movaps [rdi+rsi],xmm1	;;
         pxor   xmm1,xmm4	;;
 
-        movdqa [rdi+r11+%1],xmm9 ;; 
+        movaps [rdi+r11+%1],xmm9 ;; 
         pxor   xmm9,xmm12	;;
 
         dec    r10d
@@ -254,14 +254,14 @@ StateState { ready, recycling }
 	push   rcx
 	push   rdx
 	;; implode into xmm 0-7
-	movdqa xmm0,[rcx]
-	movdqa xmm1,[rcx+0x10]
-	movdqa xmm2,[rcx+0x20]
-	movdqa xmm3,[rcx+0x30]
-	movdqa xmm4,[rcx+0x40]
-	movdqa xmm5,[rcx+0x50]
-	movdqa xmm6,[rcx+0x60]
-	movdqa xmm7,[rcx+0x70]
+	movaps xmm0,[rcx]
+	movaps xmm1,[rcx+0x10]
+	movaps xmm2,[rcx+0x20]
+	movaps xmm3,[rcx+0x30]
+	movaps xmm4,[rcx+0x40]
+	movaps xmm5,[rcx+0x50]
+	movaps xmm6,[rcx+0x60]
+	movaps xmm7,[rcx+0x70]
 ;;; cnh: extra im pass
 %ifidn %1,cnh
 align 16
@@ -276,7 +276,7 @@ align 16
 	pxor   xmm7,[rdx+0x70]
 	xor    eax,eax
 .3:
-	movdqa xmm8,[rdi+rax]
+	movaps xmm8,[rdi+rax]
 	aesenc xmm0,xmm8
 	aesenc xmm1,xmm8
 	aesenc xmm2,xmm8
@@ -304,22 +304,22 @@ align 16
 	push   rdx
 %endif
 	;; explode from xmm 8-15
-	movdqa xmm8,[r8]
-	movdqa xmm9,[r8+0x10]
-	movdqa xmm10,[r8+0x20]
-	movdqa xmm11,[r8+0x30]
-	movdqa xmm12,[r8+0x40]
-	movdqa xmm13,[r8+0x50]
-	movdqa xmm14,[r8+0x60]
-	movdqa xmm15,[r8+0x70]
+	movaps xmm8,[r8]
+	movaps xmm9,[r8+0x10]
+	movaps xmm10,[r8+0x20]
+	movaps xmm11,[r8+0x30]
+	movaps xmm12,[r8+0x40]
+	movaps xmm13,[r8+0x50]
+	movaps xmm14,[r8+0x60]
+	movaps xmm15,[r8+0x70]
 ;;; cnh: mix up ex keys
 %ifidn %1,cnh
 	mov    r10d,16
-	movdqa [rcx],xmm0
+	movaps [rcx],xmm0
 .mixprop_ex:
 	xor    eax,eax
 .mixprop_ex_round:
-	movdqa xmm0,[rsi+rax]
+	movaps xmm0,[rsi+rax]
 	aesenc xmm8,xmm0
 	aesenc xmm9,xmm0
 	aesenc xmm10,xmm0
@@ -342,7 +342,7 @@ align 16
 	pxor   xmm15,xmm0
 	dec    r10d
 	jnz .mixprop_ex
-	movdqa xmm0,[rcx]
+	movaps xmm0,[rcx]
 %endif
 ;;; main transplode
 align 16
@@ -380,7 +380,7 @@ align 16
 	jne .1
 ;;; cnh: extra im mixing
 %ifidn %1,cnh
-	movdqa [rdx],xmm0
+	movaps [rdx],xmm0
 	pxor   xmm0,xmm1
 	pxor   xmm1,xmm2
 	pxor   xmm2,xmm3
@@ -390,14 +390,14 @@ align 16
 	pxor   xmm6,xmm7
 	pxor   xmm7,[rdx]
 %endif
-	movdqa [rdx+0x00],xmm8
-	movdqa [rdx+0x10],xmm9
-	movdqa [rdx+0x20],xmm10
-	movdqa [rdx+0x30],xmm11
-	movdqa [rdx+0x40],xmm12
-	movdqa [rdx+0x50],xmm13
-	movdqa [rdx+0x60],xmm14
-	movdqa [rdx+0x70],xmm15
+	movaps [rdx+0x00],xmm8
+	movaps [rdx+0x10],xmm9
+	movaps [rdx+0x20],xmm10
+	movaps [rdx+0x30],xmm11
+	movaps [rdx+0x40],xmm12
+	movaps [rdx+0x50],xmm13
+	movaps [rdx+0x60],xmm14
+	movaps [rdx+0x70],xmm15
 	add    rdx,0x80
 	cmp    r9,rdx
 	jne .0
@@ -407,7 +407,7 @@ align 16
 .mixprop_im:
 	xor    eax,eax
 .mixprop_im_round:
-	movdqa xmm8,[rsi+rax]
+	movaps xmm8,[rsi+rax]
 	aesenc xmm0,xmm8
 	aesenc xmm1,xmm8
 	aesenc xmm2,xmm8
