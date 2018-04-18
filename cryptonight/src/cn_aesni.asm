@@ -72,6 +72,17 @@ align 16
 %endif
         movq   xmm3,rdx		;;
         pinsrq xmm3,rax,0x1	;;
+%ifidn %3,cnhx
+	or     eax,5
+	mov    ebp,eax
+	mov    rax,rdx
+	xor    edx,edx
+	idiv   rbp
+
+	shr    ebx,2
+        and    ebx, (%1 - 0x10)/4
+	mov    ebx,[rdi+rbx+%1]
+%endif
         paddq  xmm1,xmm3	;;
 %ifidn %3,cnv1
         pxor   xmm1,xmm5	;;
@@ -221,6 +232,22 @@ cnh_mix: defmix 0x400000, 0x40000, cnh
 cn_mix_v1_x1: defmix 0x200000, 0x80000, cnv1
 cnl_mix_v0_x1: defmix 0x100000, 0x40000, cn
 cnl_mix_v0_x2: defmix2 0x100000, 0x40000, cn
+
+%if 0
+/*
+cnh:
+tr -> mix -> im1
+ex -> mix -> im1 -> im2
+
+ArenaState { mixable, mixing, splodable, sploding }
+StateState { ready, recycling }
+
+6 sploders
+24 nt-mixers
+(12 sploder-mixers 12 mixers)
+
+*/
+%endif
 
 %macro defsplode 1
 	push   rbx
