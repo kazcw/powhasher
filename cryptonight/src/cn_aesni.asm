@@ -86,9 +86,9 @@ align 16
 	lea    rbp,[rdi+rbx]
 	mov    ebx,esi
 	or     esi,5		;; 
-	idiv   rsi		;; 
-	xor    [rbp],rax
+	div    rsi		;; 
 	xor    ebx,eax		;; 
+	xor    [rbp],rax
 %endif
         dec    r10d
         movdqa xmm2,xmm0
