@@ -38,8 +38,6 @@ align 16
         aesenc xmm0,xmm1	;;
         pxor   xmm2,xmm0
 %ifidn %3,cnv1
-        movq   rax,xmm2
-        mov    [rdi+rbx],rax
         pextrq rsi,xmm2,0x1
         mov    eax,esi
         and    eax,0x31000000
@@ -50,10 +48,9 @@ align 16
         shl    eax,cl
         and    eax,0x30000000
         xor    rsi,rax
-        mov    [rdi+rbx+8],rsi
-%else
-        movaps [rdi+rbx],xmm2
+        pinsrq xmm2,rsi,1
 %endif
+        movaps [rdi+rbx],xmm2
 
         movq   rsi,xmm0		;;
         mov    rax,rsi
