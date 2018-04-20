@@ -72,17 +72,6 @@ align 16
 %endif
         movq   xmm3,rdx		;;
         pinsrq xmm3,rax,0x1	;;
-%ifidn %3,cnhx
-	or     eax,5
-	mov    ebp,eax
-	mov    rax,rdx
-	xor    edx,edx
-	idiv   rbp
-
-	shr    ebx,2
-        and    ebx, (%1 - 0x10)/4
-	mov    ebx,[rdi+rbx+%1]
-%endif
         paddq  xmm1,xmm3	;;
 %ifidn %3,cnv1
         pxor   xmm1,xmm5	;;
