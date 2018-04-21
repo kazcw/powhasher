@@ -21,8 +21,6 @@ section .text
 %macro defmix 3			; ArenaSz Iters DoTweak
 	push   rbp
 	push   rbx
-        pxor   xmm5,xmm5
-        pinsrq xmm5,rdx,1
         push   rsi
         movaps xmm1,[rsi+0x00]
         movaps xmm2,[rsi+0x10]
@@ -31,6 +29,13 @@ section .text
         movq   r8,xmm1
         mov    r10d,%2
         mov    rbx,r8
+%ifidn %3,cnv1
+        pxor   xmm5,xmm5
+        pinsrq xmm5,rdx,1
+	mov    eax,0x10
+	pxor   xmm7,xmm7
+	pinsrb xmm7,eax,11
+%endif
 align 16
 .0:
         and    ebx, %1 - 0x10   ;; 
@@ -38,17 +43,19 @@ align 16
         aesenc xmm0,xmm1	;;
         pxor   xmm2,xmm0
 %ifidn %3,cnv1
-        pextrq rsi,xmm2,0x1
-        mov    eax,esi
-        and    eax,0x31000000
-        lea    ecx,[rax+rax*8]
-        shr    ecx,26
-        and    ecx,0xE
-        mov    eax,0x13174000
-        shl    eax,cl
-        and    eax,0x30000000
-        xor    rsi,rax
-        pinsrq xmm2,rsi,1
+	movdqa xmm3,xmm7
+	movdqa xmm4,xmm7
+	pand   xmm3,xmm2
+	movdqa xmm6,xmm2
+	pslld  xmm2,4
+	pand   xmm4,xmm2
+	pandn  xmm2,xmm3
+	paddq  xmm2,xmm2
+	pxor   xmm2,xmm6
+	psrld  xmm6,1
+	pandn  xmm6,xmm4
+	pxor   xmm6,xmm7
+	pxor   xmm2,xmm6
 %endif
         movaps [rdi+rbx],xmm2
 
