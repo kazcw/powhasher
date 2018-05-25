@@ -1,5 +1,6 @@
 default rel
 global cn_mix_v1_x1
+global cn_mix_v1_x2
 global cnl_mix_v0_x1
 global cnl_mix_v0_x2
 global cnh_mix
@@ -111,7 +112,12 @@ align 16
 	push   r15
 %ifidn %3,cnv1
         pxor   xmm5,xmm5
-        pinsrq xmm5,rdx,1
+        pinsrq xmm5,rcx,1
+        pxor   xmm13,xmm13
+        pinsrq xmm13,r8,1
+	mov    eax,0x10
+	pxor   xmm7,xmm7
+	pinsrb xmm7,eax,11
 %endif
         push   rsi
         movaps xmm1,[rsi+0x00]
@@ -139,23 +145,36 @@ align 16
         aesenc xmm8,xmm9	;;
         pxor   xmm10,xmm8
 %ifidn %3,cnv1
-        movq   rax,xmm2
-        mov    [rdi+rbx],rax
-        pextrq rsi,xmm2,0x1
-        mov    eax,esi
-        and    eax,0x31000000
-        lea    ecx,[rax+rax*8]
-        shr    ecx,26
-        and    ecx,0xE
-        mov    eax,0x13174000
-        shl    eax,cl
-        and    eax,0x30000000
-        xor    rsi,rax
-        mov    [rdi+rbx+8],rsi
-%else
+	movdqa xmm3,xmm7
+	movdqa xmm4,xmm7
+	pand   xmm3,xmm2
+	movdqa xmm6,xmm2
+	pslld  xmm2,4
+	pand   xmm4,xmm2
+	pandn  xmm2,xmm3
+	paddq  xmm2,xmm2
+	pxor   xmm2,xmm6
+	psrld  xmm6,1
+	pandn  xmm6,xmm4
+	pxor   xmm6,xmm7
+	pxor   xmm2,xmm6
+
+	movdqa xmm3,xmm7
+	movdqa xmm4,xmm7
+	pand   xmm3,xmm10
+	movdqa xmm6,xmm10
+	pslld  xmm10,4
+	pand   xmm4,xmm10
+	pandn  xmm10,xmm3
+	paddq  xmm10,xmm10
+	pxor   xmm10,xmm6
+	psrld  xmm6,1
+	pandn  xmm6,xmm4
+	pxor   xmm6,xmm7
+	pxor   xmm10,xmm6
+%endif
         movaps [rdi+rbx],xmm2
         movaps [rdi+rcx+%1],xmm10
-%endif
         movq   rsi,xmm0		;;
         mov    rax,rsi
         and    esi,%1 - 0x10
@@ -187,8 +206,8 @@ align 16
         add    r14d,edx
         xor    r14d,r13d
 %ifidn %3,cnv1
-        movdqa xmm4,xmm5
-        pxor   xmm4,[rdi+rsi]
+        movdqa xmm12,xmm13
+        pxor   xmm12,[rdi+r11+%1]
 %else
         movaps xmm12,[rdi+r11+%1]
 %endif
@@ -223,6 +242,7 @@ align 16
 
 cnh_mix: defmix 0x400000, 0x40000, cnh
 cn_mix_v1_x1: defmix 0x200000, 0x80000, cnv1
+cn_mix_v1_x2: defmix2 0x200000, 0x80000, cnv1
 cnl_mix_v0_x1: defmix 0x100000, 0x40000, cn
 cnl_mix_v0_x2: defmix2 0x100000, 0x40000, cn
 

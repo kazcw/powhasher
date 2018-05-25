@@ -64,6 +64,8 @@ fn set_nonce(blob: &mut [u8], nonce: u32) {
 pub enum HasherConfig {
     #[serde(rename = "cn7-aesni-x1")]
     Cn7AesniX1,
+    #[serde(rename = "cn7-aesni-x2")]
+    Cn7AesniX2,
     #[serde(rename = "cnl-aesni-x1")]
     CnLAesniX1,
     #[serde(rename = "cnl-aesni-x2")]
@@ -91,6 +93,7 @@ pub fn hasher<Noncer: Iterator<Item = u32> + 'static>(
 ) -> Box<Hasher<Noncer>> {
     match cfg {
         HasherConfig::Cn7AesniX1 => Box::new(CryptoNight::new(blob, noncer)),
+        HasherConfig::Cn7AesniX2 => Box::new(CryptoNight2::new(blob, noncer)),
         HasherConfig::CnLAesniX1 => Box::new(CryptoNightLite::new(blob, noncer)),
         HasherConfig::CnLAesniX2 => Box::new(CryptoNightLite2::new(blob, noncer)),
         HasherConfig::CnHAesniX1 => Box::new(CryptoNightHeavy::new(blob, noncer)),
@@ -152,6 +155,76 @@ impl<Noncer: Iterator<Item = u32>> Hasher<Noncer> for CryptoNight<Noncer> {
     fn next_hash(&mut self) -> GenericArray<u8, U32> {
         self.mix();
         self.transplode()
+    }
+}
+
+#[derive(Default)]
+pub struct CryptoNight2<Noncer> {
+    memory: Mmap<[[i64x2; 1 << 17]; 2]>,
+    state: [(State, State); 2],
+    tweak: [u64; 2],
+    blob: Vec<u8>,
+    noncer: Noncer,
+    result: Option<GenericArray<u8, U32>>,
+}
+
+impl<Noncer: Iterator<Item = u32>> CryptoNight2<Noncer> {
+    pub fn new(blob: Vec<u8>, noncer: Noncer) -> Self {
+        let mut res = Self {
+            memory: Default::default(),
+            state: Default::default(),
+            tweak: Default::default(),
+            blob,
+            noncer,
+            result: Default::default(),
+        };
+        res.transplode();
+        res
+    }
+
+    fn transplode(&mut self) -> [GenericArray<u8, U32>; 2] {
+        for (st, tw) in self.state.iter_mut().zip(self.tweak.iter_mut()) {
+            set_nonce(&mut self.blob, self.noncer.next().unwrap());
+            st.1 = State::from(sha3::Keccak256Full::digest(&self.blob));
+            *tw = read_u64le(&self.blob[35..43]) ^ ((&st.1).into(): &[u64; 25])[24];
+        }
+        for (st, mem) in self.state.iter_mut().zip(self.memory.iter_mut()) {
+            cn_aesni::transplode((&mut st.0).into(), &mut mem[..], (&st.1).into());
+        }
+        let result = [finalize(self.state[0].0), finalize(self.state[1].0)];
+        for st in &mut self.state {
+            st.0 = st.1;
+        }
+        result
+    }
+
+    fn mix(&mut self) {
+        cn_aesni::mix_x2(
+            &mut self.memory,
+            (&self.state[0].0).into(),
+            self.tweak[0],
+            (&self.state[1].0).into(),
+            self.tweak[1]
+        );
+    }
+}
+
+impl<Noncer: Iterator<Item = u32>> Hasher<Noncer> for CryptoNight2<Noncer> {
+    fn set_blob(&mut self, blob: Vec<u8>, noncer: Noncer) {
+        self.blob = blob;
+        self.noncer = noncer;
+        self.transplode();
+    }
+
+    fn next_hash(&mut self) -> GenericArray<u8, U32> {
+        if let Some(res) = self.result {
+            self.result = None;
+            return res;
+        }
+        self.mix();
+        let res = self.transplode();
+        self.result = Some(res[1]);
+        res[0]
     }
 }
 
