@@ -10,6 +10,7 @@
 #![feature(attr_literals)]
 #![feature(custom_attribute)]
 #![feature(exact_chunks)]
+#![feature(iterator_step_by)]
 #![feature(try_from)]
 #![feature(type_ascription)]
 
@@ -81,6 +82,7 @@ fn main() {
     let (worksource, poolstats) = poolclient::run_thread(&cfg.pool, AGENT).unwrap();
 
     let core_ids = core_affinity::get_core_ids().unwrap();
+    let worker_count = cfg.workers.len();
     let workerstats: Vec<_> = cfg.workers
         .into_iter()
         .enumerate()
@@ -91,7 +93,7 @@ fn main() {
             debug!("starting worker{} with config: {:?}", i, &w);
             thread::Builder::new()
                 .name(format!("worker{}", i))
-                .spawn(move || worker.run(w, core_ids))
+                .spawn(move || worker.run(w, core_ids, i as u32, worker_count as u32))
                 .unwrap();
             stat_reader
         })

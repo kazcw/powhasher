@@ -59,9 +59,11 @@ pub fn int_to_hex_string_bytes(n: &u64) -> ArrayVec<[u8; 16]> {
 
 pub fn u32_to_hex_string_bytes_padded(n: &u32) -> ArrayVec<[u8; 8]> {
     let mut buf = ArrayVec::new();
-    for i in 0..8 {
-        let nibble = (*n >> ((7 - i) * 4)) & 0xf;
-        buf.push(nibble_to_hex(nibble as u8).unwrap());
+    for i in 0..4 {
+        let x0 = (n >> (8*i+4)) & 0xfu32;
+        let x1 = (n >> (8*i)) & 0xfu32;
+        buf.push(nibble_to_hex(x0 as u8).unwrap());
+        buf.push(nibble_to_hex(x1 as u8).unwrap());
     }
     buf
 }

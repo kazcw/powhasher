@@ -13,16 +13,10 @@ use typenum::U32;
 pub struct JobBlob(#[serde(deserialize_with = "hexbytes::hex_to_varbyte")] pub Vec<u8>);
 
 #[derive(Debug, Serialize, Deserialize, Clone, Copy)]
-pub struct CpuId(pub u8);
+pub struct CpuId(pub u32);
 
 #[derive(Debug, Serialize, Clone, Copy)]
 pub struct Nonce(#[serde(serialize_with = "hexbytes::u32_to_hex_padded")] pub u32);
-
-impl From<CpuId> for Nonce {
-    fn from(cpu: CpuId) -> Self {
-        Nonce(u32::from(cpu.0) << 24)
-    }
-}
 
 #[derive(Debug, Serialize)]
 #[repr(align(64))]

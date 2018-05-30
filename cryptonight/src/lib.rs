@@ -53,10 +53,10 @@ fn read_u64le(bytes: &[u8]) -> u64 {
 }
 
 fn set_nonce(blob: &mut [u8], nonce: u32) {
-    blob[39] = (nonce >> 0x18) as u8;
-    blob[40] = (nonce >> 0x10) as u8;
-    blob[41] = (nonce >> 0x08) as u8;
-    blob[42] = (nonce >> 0x00) as u8;
+    blob[39] = (nonce >> 0x00) as u8;
+    blob[40] = (nonce >> 0x08) as u8;
+    blob[41] = (nonce >> 0x10) as u8;
+    blob[42] = (nonce >> 0x18) as u8;
 }
 
 #[derive(Debug, Serialize, Deserialize)]

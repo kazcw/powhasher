@@ -31,16 +31,16 @@ impl Worker {
         }
     }
 
-    pub fn run(mut self, cfg: Config, core_ids: Vec<CoreId>) -> ! {
+    pub fn run(mut self, cfg: Config, core_ids: Vec<CoreId>, worker_id: u32, step: u32) -> ! {
         // TODO: CoreId error handling
         core_affinity::set_for_current(core_ids[cfg.cpu.0 as usize]);
         self.stat_updater.reset();
-        let base_nonce = (cfg.cpu.into(): Nonce).0;
         let (mut target, blob) = self.worksource.get_new_work().unwrap();
         let mut blob = blob.0;
-        let mut hashes = cryptonight::hasher(cfg.hasher, blob, base_nonce..);
+        let mut start = ((blob[42] as u32) << 24) + worker_id;
+        let mut hashes = cryptonight::hasher(cfg.hasher, blob, (start..).step_by(step as usize));
         loop {
-            let mut nonces = (base_nonce..).map(Nonce);
+            let mut nonces = (start..).step_by(step as usize).map(Nonce);
             loop {
                 let ws = &mut self.worksource;
                 let mut ct = 0;
@@ -61,7 +61,9 @@ impl Worker {
                     break;
                 }
             }
-            hashes.set_blob(blob, base_nonce..);
+            start = ((blob[42] as u32) << 24) + worker_id;
+            let noncer = (start..).step_by(step as usize);
+            hashes.set_blob(blob, noncer);
         }
     }
 }
