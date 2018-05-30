@@ -4,7 +4,6 @@
 
 use arrayvec::ArrayVec;
 use serde::{self, Deserializer, Serializer};
-use std::cmp;
 use std::str;
 
 fn nibble_to_hex(x: u8) -> Result<u8, ()> {
@@ -44,17 +43,6 @@ where
     S: Serializer,
 {
     buffer_to_hex(buffer.as_ref(), serializer)
-}
-
-pub fn int_to_hex_string_bytes(n: &u64) -> ArrayVec<[u8; 16]> {
-    let mut buf = ArrayVec::new();
-    let mut start = (n.leading_zeros() / 4) as usize;
-    start = cmp::min(start, 15);
-    for i in start..16 {
-        let nibble = (*n >> ((15 - i) * 4)) & 0xf;
-        buf.push(nibble_to_hex(nibble as u8).unwrap());
-    }
-    buf
 }
 
 pub fn u32_to_hex_string_bytes_padded(n: &u32) -> ArrayVec<[u8; 8]> {

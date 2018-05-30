@@ -30,12 +30,6 @@ impl Display for ErrorReply {
     }
 }
 
-impl ErrorReply {
-    fn code(&self) -> i64 {
-        self.code
-    }
-}
-
 impl Error for ErrorReply {
     fn description(&self) -> &str {
         &self.message

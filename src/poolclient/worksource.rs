@@ -56,12 +56,11 @@ impl WorkSource {
     }
 
     pub fn submit(&mut self, nonce: Nonce, result: &Hash) -> ClientResult<()> {
-        let request_id = self.pool
+        self.pool
             .lock()
             .unwrap()
             .submit(&self.last_job.unwrap(), nonce, result)?;
-        // TODO: errors
-        self.stats.share_submitted(request_id).unwrap();
+        self.stats.share_submitted();
         Ok(())
     }
 }

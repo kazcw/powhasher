@@ -42,15 +42,15 @@ impl PoolClient {
                     *self.work.lock().unwrap() = j;
                 }
             },
-            PoolEvent::PoolReply { id, error: Some(error), .. } => {
+            PoolEvent::PoolReply { id: _id, error: Some(error), .. } => {
                 warn!(
                     "received error: {:?}, assuming that indicates a stale share",
                     error
                 );
-                self.replies.share_rejected(id).unwrap();
+                self.replies.share_rejected();
             }
             PoolEvent::PoolReply {
-                id,
+                id: _id,
                 error: None,
                 result: Some(result),
             } => {
@@ -62,7 +62,7 @@ impl PoolClient {
                         } else {
                             info!("received status {:?}, assuming that means OK", status);
                         }
-                        self.replies.share_accepted(id).unwrap();
+                        self.replies.share_accepted();
                     }
                     PoolReply::Job { .. } => {
                         warn!("unexpected job reply...");
@@ -71,7 +71,7 @@ impl PoolClient {
                 // TODO
             }
             PoolEvent::PoolReply {
-                id,
+                id: _id,
                 error: None,
                 result: None,
             } => warn!("pool reply with no content"),

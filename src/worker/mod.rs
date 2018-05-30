@@ -3,7 +3,7 @@
 pub mod stats;
 
 use core_affinity::{self, CoreId};
-use cryptonight::{self, Hasher, HasherConfig};
+use cryptonight::{self, HasherConfig};
 use job::{CpuId, Hash, Nonce};
 use poolclient::WorkSource;
 use stats::StatUpdater;
@@ -43,18 +43,16 @@ impl Worker {
             let mut nonces = (start..).step_by(step as usize).map(Nonce);
             loop {
                 let ws = &mut self.worksource;
-                let mut ct = 0;
                 (hashes
                     .by_ref()
                     .take(SINGLEHASH_BATCH_SIZE)
                     .map(Hash::new)
-                    .inspect(|_| ct += 1)
                     .zip(nonces.by_ref())
-                    .filter(|(h, n)| target.is_hit(h))
+                    .filter(|(h, _n)| target.is_hit(h))
                     .map(|(h, n)| ws.submit(n, &h))
                     .collect(): Result<Vec<_>, _>)
                     .unwrap();
-                self.stat_updater.log_hashes(ct);
+                self.stat_updater.log_hashes(SINGLEHASH_BATCH_SIZE);
                 if let Some((newt, newb)) = ws.get_new_work() {
                     target = newt;
                     blob = newb.0;
