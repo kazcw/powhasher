@@ -7,6 +7,7 @@ use std::simd::i64x2;
 #[link(name = "cnaesni")]
 extern "C" {
     pub fn cn_mix_v1_x1(memory: *mut c_void, from: *const c_void, tweak: u64);
+    pub fn cn_mix_v1xtl_x1(memory: *mut c_void, from: *const c_void, tweak: u64);
     pub fn cn_mix_v1_x2(memory: *mut c_void, from0: *const c_void, from1: *const c_void, tweak0: u64, tweak1: u64);
     pub fn cnl_mix_v0_x1(memory: *mut c_void, from: *const c_void);
     pub fn cnl_mix_v0_x2(memory: *mut c_void, from0: *const c_void, from1: *const c_void);
@@ -32,6 +33,16 @@ extern "C" {
 pub fn mix(memory: &mut [i64x2; 1 << 17], from: &[i64x2], tweak: u64) {
     unsafe {
         cn_mix_v1_x1(
+            memory.as_mut_ptr() as *mut c_void,
+            from.as_ptr() as *const c_void,
+            tweak,
+        );
+    }
+}
+
+pub fn mix_xtl(memory: &mut [i64x2; 1 << 17], from: &[i64x2], tweak: u64) {
+    unsafe {
+        cn_mix_v1xtl_x1(
             memory.as_mut_ptr() as *mut c_void,
             from.as_ptr() as *const c_void,
             tweak,

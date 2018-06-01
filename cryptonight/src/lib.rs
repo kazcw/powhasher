@@ -98,6 +98,10 @@ pub fn hasher<Noncer: Iterator<Item = u32> + 'static>(
             1 => Box::new(CryptoNightHeavy::new(blob, noncer)),
             _ => unimplemented!("unsupported configuration"),
         }
+        "cn/xtl" => match cfg.n {
+            1 => Box::new(CryptoNightXtl::new(blob, noncer)),
+            _ => unimplemented!("unsupported configuration"),
+        }
         _ => unimplemented!("unsupported algo")
     }
 }
@@ -227,6 +231,64 @@ impl<Noncer: Iterator<Item = u32>> Hasher<Noncer> for CryptoNight2<Noncer> {
         let res = self.transplode();
         self.result = Some(res[1]);
         res[0]
+    }
+}
+
+#[derive(Default)]
+pub struct CryptoNightXtl<Noncer> {
+    memory: Mmap<[i64x2; 1 << 17]>,
+    blob: Vec<u8>,
+    state0: State,
+    state1: State,
+    tweak: u64,
+    noncer: Noncer,
+}
+
+impl<Noncer: Iterator<Item = u32>> CryptoNightXtl<Noncer> {
+    fn transplode(&mut self) -> GenericArray<u8, U32> {
+        set_nonce(&mut self.blob, self.noncer.next().unwrap());
+        self.state1 = State::from(sha3::Keccak256Full::digest(&self.blob));
+        self.tweak = read_u64le(&self.blob[35..43]) ^ ((&self.state1).into(): &[u64; 25])[24];
+        cn_aesni::transplode(
+            (&mut self.state0).into(),
+            &mut self.memory[..],
+            (&self.state1).into(),
+        );
+        let result = finalize(self.state0);
+        self.state0 = self.state1;
+        result
+    }
+
+    fn mix(&mut self) {
+        cn_aesni::mix_xtl(&mut self.memory, (&self.state0).into(), self.tweak);
+    }
+}
+
+impl<Noncer: Iterator<Item = u32>> CryptoNightXtl<Noncer> {
+    pub fn new(blob: Vec<u8>, noncer: Noncer) -> Self {
+        let mut res = Self {
+            memory: Default::default(),
+            blob,
+            state0: Default::default(),
+            state1: Default::default(),
+            tweak: Default::default(),
+            noncer,
+        };
+        res.transplode();
+        res
+    }
+}
+
+impl<Noncer: Iterator<Item = u32>> Hasher<Noncer> for CryptoNightXtl<Noncer> {
+    fn set_blob(&mut self, blob: Vec<u8>, noncer: Noncer) {
+        self.blob = blob;
+        self.noncer = noncer;
+        self.transplode();
+    }
+
+    fn next_hash(&mut self) -> GenericArray<u8, U32> {
+        self.mix();
+        self.transplode()
     }
 }
 
@@ -434,6 +496,11 @@ mod tests {
     const HEAVOU2: &[u8] = hex!("f68db02d511e3f6641d770ca907157f2d68e7e08f95fe349ed421e9607eb3d6d");
     const HEAVOU3: &[u8] = hex!("04b33b61e528836cc825e76ff11967b792bf026129261e05b846e241c286140e");
     const HEAVOU4: &[u8] = hex!("dfa4fc4da8edc4bbf311e9eacaebfbf91be64061ded4e71d3c9347337a47e7ac");
+    const XTLOUT0: &[u8] = hex!("eee9cd0f335ac687bb68a7155e7bd07be6b639ef133fe8795a47f5d73fa4dff3");
+    const XTLOUT1: &[u8] = hex!("c783fa00e092c9f1c887b18fcb6666f04a0bc3ab59d8262c20febd1248eef4ea");
+    const XTLOUT2: &[u8] = hex!("5b6f54b401ce5546a1426514b40842d09f92411349a5974a323e662c5d9f9b50");
+    const XTLOUT3: &[u8] = hex!("fbc3fc330f1759e118c753daeda4e0914a2d0aaba6be71575b7fcd5175666722");
+    const XTLOUT4: &[u8] = hex!("3bd752507fee87037fe144d84ced691a60b2e7765719385dcac52cbbeaca27ae");
 
     fn test_cn(input: &[u8], output: &[u8], nonce: u32) {
         assert_eq!(
@@ -465,6 +532,14 @@ mod tests {
         assert_eq!(
             &((&mut CryptoNightHeavy::new(input.iter().cloned().collect(), nonce..)
                 as &mut Hasher<_>)
+                .next_hash())[..],
+            output
+        );
+    }
+
+    fn test_xtl(input: &[u8], output: &[u8], nonce: u32) {
+        assert_eq!(
+            &((&mut CryptoNightXtl::new(input.iter().cloned().collect(), nonce..) as &mut Hasher<_>)
                 .next_hash())[..],
             output
         );
@@ -581,5 +656,30 @@ mod tests {
     #[test]
     fn test_cnh_4() {
         test_cnh(INPUT4, HEAVOU4, 0xa885c3cb);
+    }
+
+    #[test]
+    fn test_xtl_0() {
+        test_xtl(INPUT0, XTLOUT0, 0);
+    }
+
+    #[test]
+    fn test_xtl_1() {
+        test_xtl(INPUT1, XTLOUT1, 0);
+    }
+
+    #[test]
+    fn test_xtl_2() {
+        test_xtl(INPUT2, XTLOUT2, 0x450525cf);
+    }
+
+    #[test]
+    fn test_xtl_3() {
+        test_xtl(INPUT3, XTLOUT3, 0x777323f4);
+    }
+
+    #[test]
+    fn test_xtl_4() {
+        test_xtl(INPUT4, XTLOUT4, 0xa885c3cb);
     }
 }

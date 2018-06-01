@@ -1,5 +1,6 @@
 default rel
 global cn_mix_v1_x1
+global cn_mix_v1xtl_x1
 global cn_mix_v1_x2
 global cnl_mix_v0_x1
 global cnl_mix_v0_x2
@@ -19,7 +20,7 @@ section .text
 	db 0x64, 0x67, 0x90
 %endmacro
 
-%macro defmix 3			; ArenaSz Iters DoTweak
+%macro defmix 4			; ArenaSz Iters DoTweak TweakVar
 	push   rbp
 	push   rbx
         push   rsi
@@ -33,7 +34,11 @@ section .text
 %ifidn %3,cnv1
         pxor   xmm5,xmm5
         pinsrq xmm5,rdx,1
+%ifidn %4,xtl
+	mov    eax,0x20
+%else
 	mov    eax,0x10
+%endif
 	pxor   xmm7,xmm7
 	pinsrb xmm7,eax,11
 %endif
@@ -43,21 +48,49 @@ align 16
         movaps xmm0,[rdi+rbx]	;;
         aesenc xmm0,xmm1	;;
         pxor   xmm2,xmm0
-%ifidn %3,cnv1
-	movdqa xmm3,xmm7
-	movdqa xmm4,xmm7
-	pand   xmm3,xmm2
-	movdqa xmm6,xmm2
-	pslld  xmm2,4
-	pand   xmm4,xmm2
-	pandn  xmm2,xmm3
-	paddq  xmm2,xmm2
-	pxor   xmm2,xmm6
-	psrld  xmm6,1
-	pandn  xmm6,xmm4
-	pxor   xmm6,xmm7
-	pxor   xmm2,xmm6
+%ifidn %4,xtl
+	movdqa xmm3,xmm7        ;; x3: 0x20
+	movdqa xmm4,xmm7        ;; x4: 0x20
+	movdqa xmm6,xmm2        ;; x6: in
+	pand   xmm3,xmm2        ;; cc: in & 0x20
+
+        ;; bb: (in << 5) & 0x20 [in.0x1]
+        ;; CC: ~(in << 5) & cc [in.0x1, in.0x20 -> 0x20]
+	pslld  xmm2,5           ;; x2: in << 5
+	pand   xmm4,xmm2        ;; bb: x2 & 0x20
+	pandn  xmm2,xmm3        ;; CC: ~x2 & cc
+
+        ;; AA: in ^ CC [in.*]
+	pxor   xmm2,xmm6        ;; AA: aa ^ in
+
+        ;; BB: ((~(in >> 1) & bb) ^ 0x20) >> 1 [in.0x1, in.0x40 -> in.0x10]
+	psrld  xmm6,1           ;; x6: in >> 1
+	pandn  xmm6,xmm4        ;; x6: ~x6 & bb
+	pxor   xmm6,xmm7        ;; BB: x6 ^ 0x20
+        psrld  xmm6,1
+%elifidn %3,cnv1
+	movdqa xmm3,xmm7        ;; x3: 0x10
+	movdqa xmm4,xmm7        ;; x4: 0x10
+	movdqa xmm6,xmm2        ;; x6: in
+	pand   xmm3,xmm2        ;; cc: in & 0x10
+
+        ;; bb: (in << 4) & 0x10 [in.0x1]
+        ;; CC: ~(in << 4) & cc [in.0x1, in.0x10 -> 0x20]
+	pslld  xmm2,4           ;; x2: in << 4
+	pand   xmm4,xmm2        ;; bb: x2 & 0x10
+	pandn  xmm2,xmm3        ;; CC: ~x2 & cc
+	paddq  xmm2,xmm2        ;; aa: CC << 1
+
+        ;; AA: in ^ (CC << 1) [in.*]
+	pxor   xmm2,xmm6        ;; AA: aa ^ in
+
+        ;; BB: (~(in >> 1) & bb) ^ 0x10 [in.0x1, in.0x20 -> in.0x10]
+	psrld  xmm6,1           ;; x6: in >> 1
+	pandn  xmm6,xmm4        ;; x6: ~x6 & bb
+	pxor   xmm6,xmm7        ;; BB: x6 ^ 0x10
 %endif
+        ;; ou: AA ^ BB
+	pxor   xmm2,xmm6        ;; ou: AA ^ BB
         movaps [rdi+rbx],xmm2
 
         movq   rsi,xmm0		;;
@@ -240,10 +273,11 @@ align 16
 	ret
 %endmacro
 
-cnh_mix: defmix 0x400000, 0x40000, cnh
-cn_mix_v1_x1: defmix 0x200000, 0x80000, cnv1
+cnh_mix: defmix 0x400000, 0x40000, cnh, _
+cn_mix_v1_x1: defmix 0x200000, 0x80000, cnv1, _
+cn_mix_v1xtl_x1: defmix 0x200000, 0x80000, cnv1, xtl
 cn_mix_v1_x2: defmix2 0x200000, 0x80000, cnv1
-cnl_mix_v0_x1: defmix 0x100000, 0x40000, cn
+cnl_mix_v0_x1: defmix 0x100000, 0x40000, cn, _
 cnl_mix_v0_x2: defmix2 0x100000, 0x40000, cn
 
 %if 0
