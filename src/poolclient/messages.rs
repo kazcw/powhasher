@@ -98,6 +98,7 @@ pub struct Credentials<'a> {
 pub enum PoolCommand<'a> {
     Submit(Share<'a>),
     Login(Credentials<'a>),
+    KeepAlived{ id: &'a WorkerId },
 }
 
 /// Message sent from client to pool.

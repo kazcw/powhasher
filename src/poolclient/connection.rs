@@ -38,12 +38,6 @@ impl ClientWriter {
         RequestId(id)
     }
 
-    fn keepalive(&mut self) -> ClientResult<()> {
-        writeln!(self.stream)?;
-        self.stream.flush()?;
-        Ok(())
-    }
-
     fn send(&mut self, command: &PoolCommand) -> ClientResult<RequestId> {
         let id = self.alloc_id();
         serde_json::to_writer(&mut self.stream, &PoolRequest { id, command })?;
@@ -94,8 +88,8 @@ impl PoolClientWriter {
         PoolClientWriter { writer, worker_id }
     }
 
-    pub fn keepalive(&mut self) -> ClientResult<()> {
-        self.writer.keepalive()
+    pub fn keepalive(&mut self) -> ClientResult<RequestId> {
+        self.writer.send(&PoolCommand::KeepAlived{ id: &self.worker_id })
     }
 
     pub fn submit(
