@@ -3,8 +3,9 @@
 //! session layer of a pool client
 
 use job::{Hash, Job, JobId, Nonce};
-use poolclient::messages::{ClientCommand, Credentials, ErrorReply, PoolCommand, PoolEvent,
-                           PoolReply, PoolRequest, Share, WorkerId};
+use poolclient::messages::{ClientCommand, Credentials, ErrorReply, JsonMessage,
+                           PoolCommand, PoolEvent, PoolReply, PoolRequest,
+                           Share, WorkerId};
 use serde_json;
 use std::convert::From;
 use std::default::Default;
@@ -78,7 +79,7 @@ impl PoolClientReader {
         if self.buf.is_empty() {
             return Err(ClientError::disconnected());
         }
-        Ok(serde_json::from_str(&self.buf)?)
+        Ok((serde_json::from_str(&self.buf)?: JsonMessage<_>).body)
     }
 }
 
@@ -143,6 +144,7 @@ pub fn connect(
                         worker_id,
                         status,
                         job,
+                        extensions,
                     }),
             } => {
                 debug_assert_eq!(id, req_id);
@@ -158,7 +160,7 @@ pub fn connect(
             _ => return Err(ClientError::login_unexpected_reply()),
         };
     };
-    info!("login successful: status \"{}\"", status);
+    info!("login successful: status \"{:?}\"", status);
 
     let writer = PoolClientWriter::new(writer, wid);
     Ok((writer, job, reader))

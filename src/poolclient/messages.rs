@@ -37,14 +37,27 @@ impl Error for ErrorReply {
 }
 
 #[derive(Debug, Deserialize)]
+pub struct JsonMessage<T> {
+    #[serde(default)]
+    pub jsonrpc: Option<String>,
+    #[serde(default)]
+    pub status: Option<String>,
+    #[serde(flatten)]
+    pub body: T,
+}
+
+#[derive(Debug, Deserialize)]
 #[serde(untagged)]
 pub enum PoolReply {
     /// reply to getjob (not implemented) and login
     Job {
         #[serde(rename = "id")]
         worker_id: WorkerId,
-        status: String,
         job: Job,
+        #[serde(default)]
+        status: Option<String>,
+        #[serde(default)]
+        extensions: Vec<String>,
     },
     /// reply to submit
     Status { status: String },

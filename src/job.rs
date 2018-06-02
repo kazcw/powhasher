@@ -70,6 +70,10 @@ pub struct Job {
     pub blob: JobBlob,
     pub job_id: JobId,
     pub target: Target,
+    #[serde(default)]
+    pub algo: Option<String>,
+    #[serde(default)]
+    variant: u32, // xmrig sends this for compat with obsolete xmrig
 }
 
 impl PartialEq<Job> for Job {
