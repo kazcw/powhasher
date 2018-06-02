@@ -100,6 +100,7 @@ impl PoolClientWriter {
 
     pub fn submit(
         &mut self,
+        algo: &str,
         job_id: &JobId,
         nonce: Nonce,
         result: &Hash,
@@ -109,6 +110,7 @@ impl PoolClientWriter {
             job_id,
             nonce,
             result,
+            algo,
         }))
         // 1 PoolReply::StatusReply expected
     }
@@ -128,7 +130,8 @@ pub fn connect(
     stream_w.set_nodelay(true)?;
     let stream_w = BufWriter::with_capacity(1500, stream_w);
     let mut writer = ClientWriter::new(stream_w);
-    let req_id = writer.send(&PoolCommand::Login(Credentials { login, pass, agent }))?;
+    let algo = &vec!["cn/1"];
+    let req_id = writer.send(&PoolCommand::Login(Credentials { login, pass, agent, algo }))?;
     debug!("login sent: {:?}", req_id);
 
     stream_r.set_read_timeout(keepalive)?;

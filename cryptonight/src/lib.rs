@@ -61,17 +61,8 @@ fn set_nonce(blob: &mut [u8], nonce: u32) {
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
-pub enum HasherConfig {
-    #[serde(rename = "cn7-aesni-x1")]
-    Cn7AesniX1,
-    #[serde(rename = "cn7-aesni-x2")]
-    Cn7AesniX2,
-    #[serde(rename = "cnl-aesni-x1")]
-    CnLAesniX1,
-    #[serde(rename = "cnl-aesni-x2")]
-    CnLAesniX2,
-    #[serde(rename = "cnh-aesni-x1")]
-    CnHAesniX1,
+pub struct HasherConfig {
+    n: u32
 }
 
 pub trait Hasher<Noncer> {
@@ -87,16 +78,27 @@ impl<Noncer> Iterator for Hasher<Noncer> {
 }
 
 pub fn hasher<Noncer: Iterator<Item = u32> + 'static>(
+    algo: &str,
     cfg: HasherConfig,
     blob: Vec<u8>,
     noncer: Noncer,
 ) -> Box<Hasher<Noncer>> {
-    match cfg {
-        HasherConfig::Cn7AesniX1 => Box::new(CryptoNight::new(blob, noncer)),
-        HasherConfig::Cn7AesniX2 => Box::new(CryptoNight2::new(blob, noncer)),
-        HasherConfig::CnLAesniX1 => Box::new(CryptoNightLite::new(blob, noncer)),
-        HasherConfig::CnLAesniX2 => Box::new(CryptoNightLite2::new(blob, noncer)),
-        HasherConfig::CnHAesniX1 => Box::new(CryptoNightHeavy::new(blob, noncer)),
+    match algo {
+        "cn/1" => match cfg.n {
+            1 => Box::new(CryptoNight::new(blob, noncer)),
+            2 => Box::new(CryptoNight2::new(blob, noncer)),
+            _ => unimplemented!("unsupported configuration"),
+        }
+        "cn-lite/0" => match cfg.n {
+            1 => Box::new(CryptoNightLite::new(blob, noncer)),
+            2 => Box::new(CryptoNightLite2::new(blob, noncer)),
+            _ => unimplemented!("unsupported configuration"),
+        }
+        "cn-heavy" => match cfg.n {
+            1 => Box::new(CryptoNightHeavy::new(blob, noncer)),
+            _ => unimplemented!("unsupported configuration"),
+        }
+        _ => unimplemented!("unsupported algo")
     }
 }
 

@@ -44,7 +44,7 @@ impl WorkSource {
     }
 
     /// return the current work blob if it's newer than the previously-returned
-    pub fn get_new_work(&mut self) -> Option<(Target, JobBlob)> {
+    pub fn get_new_work(&mut self) -> Option<(Target, JobBlob, String)> {
         let current = self.work.lock().unwrap();
         if let Some(last_job) = self.last_job {
             if last_job == current.job_id {
@@ -52,14 +52,14 @@ impl WorkSource {
             }
         }
         self.last_job = Some(current.job_id);
-        Some((current.target, current.blob.clone()))
+        Some((current.target, current.blob.clone(), current.algo.clone().unwrap_or("cn/1".to_owned()).to_owned()))
     }
 
-    pub fn submit(&mut self, nonce: Nonce, result: &Hash) -> ClientResult<()> {
+    pub fn submit(&mut self, algo: &str, nonce: Nonce, result: &Hash) -> ClientResult<()> {
         self.pool
             .lock()
             .unwrap()
-            .submit(&self.last_job.unwrap(), nonce, result)?;
+            .submit(algo, &self.last_job.unwrap(), nonce, result)?;
         self.stats.share_submitted();
         Ok(())
     }

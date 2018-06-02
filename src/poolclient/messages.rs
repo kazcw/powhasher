@@ -82,6 +82,7 @@ pub struct Share<'a> {
     pub job_id: &'a JobId,
     pub nonce: Nonce,
     pub result: &'a Hash,
+    pub algo: &'a str,
 }
 
 #[derive(Debug, Serialize)]
@@ -89,6 +90,7 @@ pub struct Credentials<'a> {
     pub login: &'a str,
     pub pass: &'a str,
     pub agent: &'a str,
+    pub algo: &'a [&'a str],
 }
 
 #[derive(Debug, Serialize)]
