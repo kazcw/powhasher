@@ -15,10 +15,10 @@ pub struct JobBlob(#[serde(deserialize_with = "hexbytes::hex_to_varbyte")] pub V
 #[derive(Debug, Serialize, Deserialize, Clone, Copy)]
 pub struct CpuId(pub u32);
 
-#[derive(Debug, Serialize, Clone, Copy)]
+#[derive(Debug, Serialize, Deserialize, Clone, Copy)]
 pub struct Nonce(#[serde(serialize_with = "hexbytes::u32_to_hex_padded")] pub u32);
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Copy, Clone, Serialize, Deserialize)]
 #[repr(align(64))]
 pub struct Hash(#[serde(serialize_with = "hexbytes::byte32_to_hex")] [u8; 32]);
 
@@ -41,7 +41,7 @@ impl Hash {
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq)]
 pub struct JobId(ArrayString<[u8; 64]>);
 
-#[derive(Debug, Deserialize, Clone, Copy)]
+#[derive(Debug, Serialize, Deserialize, Clone, Copy)]
 pub struct Target(#[serde(deserialize_with = "deserialize_target")] u64);
 
 // Input is either 32-bit or 64-bit little-endian hex string, not necessarily padded.
@@ -65,7 +65,7 @@ impl Target {
     }
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Job {
     pub blob: JobBlob,
     pub job_id: JobId,

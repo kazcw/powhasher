@@ -38,7 +38,7 @@ impl ClientWriter {
         RequestId(id)
     }
 
-    fn send(&mut self, command: &PoolCommand) -> ClientResult<RequestId> {
+    fn send(&mut self, command: PoolCommand) -> ClientResult<RequestId> {
         let id = self.alloc_id();
         serde_json::to_writer(&mut self.stream, &PoolRequest { id, command })?;
         writeln!(&mut self.stream)?;
@@ -89,7 +89,7 @@ impl PoolClientWriter {
     }
 
     pub fn keepalive(&mut self) -> ClientResult<RequestId> {
-        self.writer.send(&PoolCommand::KeepAlived{ id: &self.worker_id })
+        self.writer.send(PoolCommand::KeepAlived{ id: self.worker_id })
     }
 
     pub fn submit(
@@ -99,12 +99,12 @@ impl PoolClientWriter {
         nonce: Nonce,
         result: &Hash,
     ) -> ClientResult<RequestId> {
-        self.writer.send(&PoolCommand::Submit(Share {
-            worker_id: &self.worker_id,
-            job_id,
+        self.writer.send(PoolCommand::Submit(Share {
+            worker_id: self.worker_id,
+            job_id: *job_id,
             nonce,
-            result,
-            algo,
+            result: *result,
+            algo: algo.to_owned(),
         }))
         // 1 PoolReply::StatusReply expected
     }
@@ -124,8 +124,9 @@ pub fn connect(
     stream_w.set_nodelay(true)?;
     let stream_w = BufWriter::with_capacity(1500, stream_w);
     let mut writer = ClientWriter::new(stream_w);
-    let algo = &vec!["cn/1"];
-    let req_id = writer.send(&PoolCommand::Login(Credentials { login, pass, agent, algo }))?;
+    let algo = vec!["cn/1".to_owned()];
+    let (login, pass, agent) = (login.to_owned(), pass.to_owned(), agent.to_owned());
+    let req_id = writer.send(PoolCommand::Login(Credentials { login, pass, agent, algo }))?;
     debug!("login sent: {:?}", req_id);
 
     stream_r.set_read_timeout(keepalive)?;
