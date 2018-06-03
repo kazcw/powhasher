@@ -6,7 +6,7 @@ use core_affinity::{self, CoreId};
 use cryptonight::{self, HasherConfig};
 use job::{CpuId, Hash, Nonce};
 use poolclient::WorkSource;
-use stats::StatUpdater;
+use self::stats::StatUpdater;
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]

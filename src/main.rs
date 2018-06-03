@@ -79,7 +79,7 @@ fn main() {
         .unwrap();
     debug!("config: {:?}", &cfg);
 
-    let (worksource, poolstats) = poolclient::run_thread(&cfg.pool, AGENT).unwrap();
+    let worksource = poolclient::run_thread(&cfg.pool, AGENT).unwrap();
 
     let core_ids = core_affinity::get_core_ids().unwrap();
     let worker_count = cfg.workers.len();
@@ -127,8 +127,6 @@ fn main() {
             / ((total_dur.as_secs() as f32) + (total_dur.subsec_nanos() as f32) / 1_000_000_000.0);
         println!("\ttotal (all time): {} H/s", total_rate);
         mem::swap(&mut prev_stats, &mut new_stats);
-
-        println!("pool stats: {:?}", poolstats.get());
 
         std::io::stdin().read_line(&mut String::new()).unwrap();
     }

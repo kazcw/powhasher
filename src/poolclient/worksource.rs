@@ -2,7 +2,6 @@
 
 use job::{Hash, Job, JobBlob, JobId, Nonce, Target};
 use poolclient::connection::{ClientResult, PoolClientWriter};
-use poolclient::stats::RequestLogger;
 use std::sync::{Arc, Mutex};
 
 /// handle to a source of Jobs and a destination for resulting Shares
@@ -12,7 +11,6 @@ pub struct WorkSource {
     work: Arc<Mutex<Job>>,
     pool: Arc<Mutex<PoolClientWriter>>,
     last_job: Option<JobId>,
-    stats: RequestLogger,
 }
 
 /*
@@ -33,13 +31,11 @@ impl WorkSource {
     pub fn new(
         work: Arc<Mutex<Job>>,
         pool: Arc<Mutex<PoolClientWriter>>,
-        stats: RequestLogger,
     ) -> WorkSource {
         WorkSource {
             work,
             pool,
             last_job: Default::default(),
-            stats,
         }
     }
 
@@ -60,7 +56,6 @@ impl WorkSource {
             .lock()
             .unwrap()
             .submit(algo, &self.last_job.unwrap(), nonce, result)?;
-        self.stats.share_submitted();
         Ok(())
     }
 }

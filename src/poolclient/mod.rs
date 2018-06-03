@@ -4,13 +4,11 @@
 
 mod connection;
 mod messages;
-mod stats;
 mod worksource;
 
 use self::connection::{PoolClientReader, PoolClientWriter, RequestId};
 pub use self::connection::ClientResult;
 use self::messages::{ClientCommand, PoolEvent, PoolReply};
-pub use self::stats::{ReplyLogger, RequestLogger, RequestState, StatReader, Stats};
 pub use self::worksource::WorkSource;
 use job::Job;
 use std::sync::{Arc, Mutex};
@@ -29,7 +27,6 @@ pub struct Config {
 struct PoolClient {
     writer: Arc<Mutex<PoolClientWriter>>,
     reader: PoolClientReader,
-    replies: ReplyLogger,
     work: Arc<Mutex<Job>>,
 }
 
@@ -47,7 +44,6 @@ impl PoolClient {
                     "received error: {:?}, assuming that indicates a stale share",
                     error
                 );
-                self.replies.share_rejected();
             }
             PoolEvent::PoolReply {
                 id: _id,
@@ -62,7 +58,6 @@ impl PoolClient {
                         } else {
                             info!("received status {:?}, assuming that means OK", status);
                         }
-                        self.replies.share_accepted();
                     }
                     PoolReply::Job { .. } => {
                         warn!("unexpected job reply...");
@@ -90,7 +85,7 @@ impl PoolClient {
     }
 }
 
-pub fn run_thread(cfg: &Config, agent: &str) -> ClientResult<(WorkSource, StatReader)> {
+pub fn run_thread(cfg: &Config, agent: &str) -> ClientResult<WorkSource> {
     let (writer, work, reader) = connection::connect(
         &cfg.address,
         &cfg.login,
@@ -101,16 +96,14 @@ pub fn run_thread(cfg: &Config, agent: &str) -> ClientResult<(WorkSource, StatRe
     debug!("client connected, initial job: {:?}", &work);
     let work = Arc::new(Mutex::new(work));
     let writer = Arc::new(Mutex::new(writer));
-    let (requests, replies, stats) = stats::request_state_tracker();
     let client = PoolClient {
         writer: Arc::clone(&writer),
         reader,
-        replies,
         work: Arc::clone(&work),
     };
     thread::Builder::new()
         .name("poolclient".into())
         .spawn(move || client.run())
         .unwrap();
-    Ok((WorkSource::new(work, writer, requests), stats))
+    Ok(WorkSource::new(work, writer))
 }
