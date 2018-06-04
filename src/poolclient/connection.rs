@@ -2,10 +2,9 @@
 
 //! session layer of a pool client
 
-use job::{Hash, Job, JobId, Nonce};
 use poolclient::messages::{ClientCommand, Credentials, ErrorReply, JsonMessage,
                            PoolCommand, PoolEvent, PoolReply, PoolRequest,
-                           Share, WorkerId};
+                           Share, WorkerId, JobId, Job};
 use serde_json;
 use std::convert::From;
 use std::default::Default;
@@ -96,8 +95,8 @@ impl PoolClientWriter {
         &mut self,
         algo: &str,
         job_id: &JobId,
-        nonce: Nonce,
-        result: &Hash,
+        nonce: u32,
+        result: &[u8; 32],
     ) -> ClientResult<RequestId> {
         self.writer.send(PoolCommand::Submit(Share {
             worker_id: self.worker_id,

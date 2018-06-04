@@ -3,14 +3,14 @@
 //! application layer of pool client
 
 mod connection;
+mod hexbytes;
 mod messages;
 mod worksource;
 
 use self::connection::{PoolClientReader, PoolClientWriter, RequestId};
 pub use self::connection::ClientResult;
-use self::messages::{ClientCommand, PoolEvent, PoolReply};
+use self::messages::{ClientCommand, PoolEvent, PoolReply, Job};
 pub use self::worksource::WorkSource;
-use job::Job;
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;

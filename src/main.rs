@@ -30,8 +30,6 @@ extern crate cryptonight;
 extern crate generic_array;
 extern crate typenum;
 
-mod hexbytes;
-mod job;
 mod poolclient;
 mod worker;
 

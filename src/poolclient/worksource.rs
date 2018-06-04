@@ -1,6 +1,6 @@
 // copyright 2017 Kaz Wesley
 
-use job::{Hash, Job, JobBlob, JobId, Nonce, Target};
+use poolclient::messages::{Job, JobId};
 use poolclient::connection::{ClientResult, PoolClientWriter};
 use std::sync::{Arc, Mutex};
 
@@ -40,7 +40,7 @@ impl WorkSource {
     }
 
     /// return the current work blob if it's newer than the previously-returned
-    pub fn get_new_work(&mut self) -> Option<(Target, JobBlob, String)> {
+    pub fn get_new_work(&mut self) -> Option<(u64, Vec<u8>, String)> {
         let current = self.work.lock().unwrap();
         if let Some(last_job) = self.last_job {
             if last_job == current.job_id {
@@ -51,7 +51,7 @@ impl WorkSource {
         Some((current.target, current.blob.clone(), current.algo.clone().unwrap_or("cn/1".to_owned()).to_owned()))
     }
 
-    pub fn submit(&mut self, algo: &str, nonce: Nonce, result: &Hash) -> ClientResult<()> {
+    pub fn submit(&mut self, algo: &str, nonce: u32, result: &[u8; 32]) -> ClientResult<()> {
         self.pool
             .lock()
             .unwrap()

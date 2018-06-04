@@ -3,7 +3,8 @@
 //! Serialization for the JSON-RPC-based `CryptoNote` pool protocol
 
 use arrayvec::ArrayString;
-use job::{Hash, Job, JobId, Nonce};
+use poolclient::hexbytes;
+use serde::Deserializer;
 use std::error::Error;
 use std::fmt::{self, Display, Formatter};
 
@@ -14,7 +15,44 @@ use std::fmt::{self, Display, Formatter};
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct WorkerId(ArrayString<[u8; 64]>);
 
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq)]
+pub struct JobId(ArrayString<[u8; 64]>);
+
 ////////// server -> worker
+
+// Input is either 32-bit or 64-bit little-endian hex string, not necessarily padded.
+// Inputs of 8 hex chars or less are in a compact format.
+pub fn deserialize_target<'de, D>(deserializer: D) -> Result<u64, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let (mut val, hexlen) = hexbytes::hex64le_to_int(deserializer)?;
+    // unpack compact format
+    // XXX: this is what other miners do. It doesn't seem right...
+    if hexlen <= 8 {
+        val |= val << 0x20;
+    }
+    Ok(val)
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct Job {
+    #[serde(deserialize_with = "hexbytes::hex_to_varbyte")]
+    pub blob: Vec<u8>,
+    pub job_id: JobId,
+    #[serde(deserialize_with = "deserialize_target")]
+    pub target: u64,
+    #[serde(default)]
+    pub algo: Option<String>,
+    #[serde(default)]
+    variant: u32, // xmrig sends this for compat with obsolete xmrig
+}
+
+impl PartialEq<Job> for Job {
+    fn eq(&self, other: &Job) -> bool {
+        self.job_id == other.job_id
+    }
+}
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(tag = "method", content = "params", rename_all = "lowercase")]
@@ -86,8 +124,10 @@ pub struct Share {
     #[serde(rename = "id")]
     pub worker_id: WorkerId,
     pub job_id: JobId,
-    pub nonce: Nonce,
-    pub result: Hash,
+    #[serde(serialize_with = "hexbytes::u32_to_hex_padded")]
+    pub nonce: u32,
+    #[serde(serialize_with = "hexbytes::byte32_to_hex")]
+    pub result: [u8; 32],
     pub algo: String,
 }
 
