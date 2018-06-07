@@ -42,9 +42,9 @@ impl Worker {
         // TODO: CoreId error handling
         core_affinity::set_for_current(core_ids[cfg.cpu as usize]);
         self.stat_updater.reset();
-        let (mut target, mut blob, mut algo) = self.worksource.get_new_work().unwrap();
-        let mut start = ((blob[42] as u32) << 24) + worker_id;
-        let mut hashes = cryptonight::hasher(&algo, cfg.hasher, blob, (start..).step_by(step as usize));
+        let (mut target, blob, algo) = self.worksource.get_new_work().unwrap();
+        let start = ((blob[42] as u32) << 24) + worker_id;
+        let mut hashes = cryptonight::hasher(&algo, &cfg.hasher, blob, (start..).step_by(step as usize));
         loop {
             let mut nonces = (start..).step_by(step as usize);
             loop {
@@ -60,15 +60,11 @@ impl Worker {
                     .unwrap();
                 self.stat_updater.log_hashes(SINGLEHASH_BATCH_SIZE);
                 if let Some((newt, newb, newa)) = ws.get_new_work() {
+                    hashes = cryptonight::hasher(&newa, &cfg.hasher, newb, (start..).step_by(step as usize));
                     target = newt;
-                    blob = newb;
-                    algo = newa;
                     break;
                 }
             }
-            start = ((blob[42] as u32) << 24) + worker_id;
-            let noncer = (start..).step_by(step as usize);
-            hashes.set_blob(blob, noncer);
         }
     }
 }

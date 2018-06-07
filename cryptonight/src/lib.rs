@@ -79,7 +79,7 @@ impl<Noncer> Iterator for Hasher<Noncer> {
 
 pub fn hasher<Noncer: Iterator<Item = u32> + 'static>(
     algo: &str,
-    cfg: HasherConfig,
+    cfg: &HasherConfig,
     blob: Vec<u8>,
     noncer: Noncer,
 ) -> Box<Hasher<Noncer>> {
