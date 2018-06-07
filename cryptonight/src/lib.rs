@@ -557,17 +557,17 @@ mod tests {
 
     #[test]
     fn test_cn_2() {
-        test_cn(INPUT2, OUTPUT2, 0x450525cf);
+        test_cn(INPUT2, OUTPUT2, 0xcf250545);
     }
 
     #[test]
     fn test_cn_3() {
-        test_cn(INPUT3, OUTPUT3, 0x777323f4);
+        test_cn(INPUT3, OUTPUT3, 0xf4237377);
     }
 
     #[test]
     fn test_cn_4() {
-        test_cn(INPUT4, OUTPUT4, 0xa885c3cb);
+        test_cn(INPUT4, OUTPUT4, 0xcbc385a8);
     }
 
     #[test]
@@ -582,17 +582,17 @@ mod tests {
 
     #[test]
     fn test_cnl_2() {
-        test_cnl(INPUT2, LITEOU2, 0x450525cf);
+        test_cnl(INPUT2, LITEOU2, 0xcf250545);
     }
 
     #[test]
     fn test_cnl_3() {
-        test_cnl(INPUT3, LITEOU3, 0x777323f4);
+        test_cnl(INPUT3, LITEOU3, 0xf4237377);
     }
 
     #[test]
     fn test_cnl_4() {
-        test_cnl(INPUT4, LITEOU4, 0xa885c3cb);
+        test_cnl(INPUT4, LITEOU4, 0xcbc385a8);
     }
 
     #[test]
@@ -607,17 +607,17 @@ mod tests {
 
     #[test]
     fn test_cnl_x2_2() {
-        test_cnl_x2(INPUT2, LITEOU2, 0x450525cf);
+        test_cnl_x2(INPUT2, LITEOU2, 0xcf250545);
     }
 
     #[test]
     fn test_cnl_x2_3() {
-        test_cnl_x2(INPUT3, LITEOU3, 0x777323f4);
+        test_cnl_x2(INPUT3, LITEOU3, 0xf4237377);
     }
 
     #[test]
     fn test_cnl_x2_4() {
-        test_cnl_x2(INPUT4, LITEOU4, 0xa885c3cb);
+        test_cnl_x2(INPUT4, LITEOU4, 0xcbc385a8);
     }
 
     #[test]
@@ -645,17 +645,17 @@ mod tests {
 
     #[test]
     fn test_cnh_2() {
-        test_cnh(INPUT2, HEAVOU2, 0x450525cf);
+        test_cnh(INPUT2, HEAVOU2, 0xcf250545);
     }
 
     #[test]
     fn test_cnh_3() {
-        test_cnh(INPUT3, HEAVOU3, 0x777323f4);
+        test_cnh(INPUT3, HEAVOU3, 0xf4237377);
     }
 
     #[test]
     fn test_cnh_4() {
-        test_cnh(INPUT4, HEAVOU4, 0xa885c3cb);
+        test_cnh(INPUT4, HEAVOU4, 0xcbc385a8);
     }
 
     #[test]
@@ -670,16 +670,16 @@ mod tests {
 
     #[test]
     fn test_xtl_2() {
-        test_xtl(INPUT2, XTLOUT2, 0x450525cf);
+        test_xtl(INPUT2, XTLOUT2, 0xcf250545);
     }
 
     #[test]
     fn test_xtl_3() {
-        test_xtl(INPUT3, XTLOUT3, 0x777323f4);
+        test_xtl(INPUT3, XTLOUT3, 0xf4237377);
     }
 
     #[test]
     fn test_xtl_4() {
-        test_xtl(INPUT4, XTLOUT4, 0xa885c3cb);
+        test_xtl(INPUT4, XTLOUT4, 0xcbc385a8);
     }
 }
