@@ -21,7 +21,7 @@ pub struct Worker {
 }
 
 /// Number of hashes to do in a batch, i.e. between checks for new work.
-const SINGLEHASH_BATCH_SIZE: usize = 16;
+const SINGLEHASH_BATCH_SIZE: usize = 1;
 
 fn is_hit(hash: &[u8; 32], target: u64) -> bool {
     let hashle64 = hash[24..].iter().enumerate().fold(0u64, |x, (i, v)| {
