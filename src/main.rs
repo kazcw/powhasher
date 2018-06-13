@@ -50,7 +50,7 @@ struct Config {
 }
 
 fn main() {
-    env_logger::init().unwrap();
+    env_logger::init();
 
     let panicker = std::panic::take_hook();
     std::panic::set_hook(Box::new(move |info| {
