@@ -94,6 +94,10 @@ pub fn hasher<Noncer: Iterator<Item = u32> + 'static>(
             2 => Box::new(CryptoNightLite2::new(blob, noncer)),
             _ => unimplemented!("unsupported configuration"),
         }
+        "cn-lite/1" => match cfg.n {
+            1 => Box::new(CryptoNightLiteV1::new(blob, noncer)),
+            _ => unimplemented!("unsupported configuration"),
+        }
         "cn-heavy" => match cfg.n {
             1 => Box::new(CryptoNightHeavy::new(blob, noncer)),
             _ => unimplemented!("unsupported configuration"),
@@ -413,6 +417,61 @@ impl<Noncer: Iterator<Item = u32>> Hasher<Noncer> for CryptoNightLite2<Noncer> {
 }
 
 #[derive(Default)]
+pub struct CryptoNightLiteV1<Noncer> {
+    memory: Mmap<[i64x2; 1 << 16]>,
+    blob: Vec<u8>,
+    state0: State,
+    state1: State,
+    noncer: Noncer,
+}
+
+impl<Noncer: Iterator<Item = u32>> CryptoNightLiteV1<Noncer> {
+    fn transplode(&mut self) -> GenericArray<u8, U32> {
+        set_nonce(&mut self.blob, self.noncer.next().unwrap());
+        self.state1 = State::from(sha3::Keccak256Full::digest(&self.blob));
+        cn_aesni::transplode(
+            (&mut self.state0).into(),
+            &mut self.memory[..],
+            (&self.state1).into(),
+        );
+        let result = finalize(self.state0);
+        self.state0 = self.state1;
+        result
+    }
+
+    fn mix(&mut self) {
+        cn_aesni::mix_lite_v1(&mut self.memory, (&self.state0).into());
+    }
+}
+
+impl<Noncer: Iterator<Item = u32>> CryptoNightLiteV1<Noncer> {
+    pub fn new(blob: Vec<u8>, noncer: Noncer) -> Self {
+        let mut res = Self {
+            memory: Default::default(),
+            blob,
+            state0: Default::default(),
+            state1: Default::default(),
+            noncer,
+        };
+        res.transplode();
+        res
+    }
+}
+
+impl<Noncer: Iterator<Item = u32>> Hasher<Noncer> for CryptoNightLiteV1<Noncer> {
+    fn set_blob(&mut self, blob: Vec<u8>, noncer: Noncer) {
+        self.blob = blob;
+        self.noncer = noncer;
+        self.transplode();
+    }
+
+    fn next_hash(&mut self) -> GenericArray<u8, U32> {
+        self.mix();
+        self.transplode()
+    }
+}
+
+#[derive(Default)]
 pub struct CryptoNightHeavy<Noncer> {
     memory: Mmap<[i64x2; 1 << 18]>,
     blob: Vec<u8>,
@@ -491,6 +550,11 @@ mod tests {
     const LITEOU2: &[u8] = hex!("f828ff6bf19a6e72a77319808e43f745f90f47eceb698e4319d2484404b081e8");
     const LITEOU3: &[u8] = hex!("61e3cb5e046ae4ac5d03f8ec6bd7a9a80d5e2573817429d1624735f66aff4b11");
     const LITEOU4: &[u8] = hex!("12c2f26b89cc514707ac0fb953f1f72581eb468de2a5d4d4cf95c0d1b32f7285");
+    const LIT1OU0: &[u8] = hex!("5655313715525895d2312bfba9b7f5e45f441b8b8d3957eaea0b6039d1bc0713");
+    const LIT1OU1: &[u8] = hex!("173c9db34c9643ba689e16044f5c273c4c5543b210a4d5248352ac536064a850");
+    const LIT1OU2: &[u8] = hex!("bb196c4c0c9dc1c4e44c2a6f9e61200fe3c8b4ef232134e65c3c7862c7d3df6a");
+    const LIT1OU3: &[u8] = hex!("452103731dd8d70ce32f726b8e71fcd91005fb3cb2abd78f2b7357bb07f8c8bc");
+    const LIT1OU4: &[u8] = hex!("4e785376ed2733262d83cc25321a9d0003f5395315de919acf1b97f0a84fbd2d");
     const HEAVOU0: &[u8] = hex!("8e9b0d37a75eea071c224d10522b9e12a7f1a96a317efd92db41e593133574a4");
     const HEAVOU1: &[u8] = hex!("3ec94bf7800410ff50de0767196bc60d90e9598a7c70a7d27f4c090d7f25377a");
     const HEAVOU2: &[u8] = hex!("f68db02d511e3f6641d770ca907157f2d68e7e08f95fe349ed421e9607eb3d6d");
@@ -513,6 +577,15 @@ mod tests {
     fn test_cnl(input: &[u8], output: &[u8], nonce: u32) {
         assert_eq!(
             &((&mut CryptoNightLite::new(input.iter().cloned().collect(), nonce..)
+                as &mut Hasher<_>)
+                .next_hash())[..],
+            output
+        );
+    }
+
+    fn test_cnl_v1(input: &[u8], output: &[u8], nonce: u32) {
+        assert_eq!(
+            &((&mut CryptoNightLiteV1::new(input.iter().cloned().collect(), nonce..)
                 as &mut Hasher<_>)
                 .next_hash())[..],
             output
@@ -631,6 +704,31 @@ mod tests {
         {
             assert_eq!(cnlx2, cnl);
         }
+    }
+
+    #[test]
+    fn test_cnl_v1_0() {
+        test_cnl_v1(INPUT0, LIT1OU0, 0);
+    }
+
+    #[test]
+    fn test_cnl_v1_1() {
+        test_cnl_v1(INPUT1, LIT1OU1, 0);
+    }
+
+    #[test]
+    fn test_cnl_v1_2() {
+        test_cnl_v1(INPUT2, LIT1OU2, 0xcf250545);
+    }
+
+    #[test]
+    fn test_cnl_v1_3() {
+        test_cnl_v1(INPUT3, LIT1OU3, 0xf4237377);
+    }
+
+    #[test]
+    fn test_cnl_v1_4() {
+        test_cnl_v1(INPUT4, LIT1OU4, 0xcbc385a8);
     }
 
     #[test]

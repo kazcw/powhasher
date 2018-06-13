@@ -4,6 +4,7 @@ global cn_mix_v1xtl_x1
 global cn_mix_v1_x2
 global cnl_mix_v0_x1
 global cnl_mix_v0_x2
+global cnl_mix_v1_x1
 global cnh_mix
 global cn_transplode
 global cnh_transplode
@@ -279,6 +280,7 @@ cn_mix_v1xtl_x1: defmix 0x200000, 0x80000, cnv1, xtl
 cn_mix_v1_x2: defmix2 0x200000, 0x80000, cnv1
 cnl_mix_v0_x1: defmix 0x100000, 0x40000, cn, _
 cnl_mix_v0_x2: defmix2 0x100000, 0x40000, cn
+cnl_mix_v1_x1: defmix 0x100000, 0x40000, cnv1, _
 
 %if 0
 /*
