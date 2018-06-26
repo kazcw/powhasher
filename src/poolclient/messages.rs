@@ -2,9 +2,12 @@
 
 //! Serialization for the JSON-RPC-based `CryptoNote` pool protocol
 
+use crate::poolclient::hexbytes;
+
 use arrayvec::ArrayString;
-use poolclient::hexbytes;
 use serde::Deserializer;
+use serde_derive::{Deserialize, Serialize};
+
 use std::error::Error;
 use std::fmt::{self, Display, Formatter};
 

@@ -2,10 +2,13 @@
 
 pub mod stats;
 
+use crate::poolclient::WorkSource;
+use self::stats::StatUpdater;
+
 use core_affinity::{self, CoreId};
 use cryptonight::{self, HasherConfig};
-use poolclient::WorkSource;
-use self::stats::StatUpdater;
+use serde_derive::{Deserialize, Serialize};
+
 use std::convert::TryFrom;
 
 #[derive(Debug, Serialize, Deserialize)]

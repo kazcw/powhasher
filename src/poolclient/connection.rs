@@ -2,15 +2,21 @@
 
 //! session layer of a pool client
 
-use poolclient::messages::{ClientCommand, Credentials, ErrorReply, JsonMessage,
+use crate::poolclient::messages::{ClientCommand, Credentials, ErrorReply, JsonMessage,
                            PoolCommand, PoolEvent, PoolReply, PoolRequest,
                            Share, WorkerId, JobId, Job};
+
 use serde_json;
+
 use std::convert::From;
 use std::default::Default;
 use std::io::{self, BufRead, BufReader, BufWriter, Write};
 use std::net::TcpStream;
 use std::time::Duration;
+
+use failure::Fail;
+use log::{debug, info, log, warn};
+use serde_derive::{Deserialize, Serialize};
 
 pub type ClientResult<T> = Result<T, ClientError>;
 

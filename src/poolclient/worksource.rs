@@ -1,7 +1,8 @@
 // copyright 2017 Kaz Wesley
 
-use poolclient::messages::{Job, JobId};
-use poolclient::connection::{ClientResult, PoolClientWriter};
+use crate::poolclient::messages::{Job, JobId};
+use crate::poolclient::connection::{ClientResult, PoolClientWriter};
+
 use std::sync::{Arc, Mutex};
 
 /// handle to a source of Jobs and a destination for resulting Shares

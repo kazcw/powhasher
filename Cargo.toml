@@ -1,8 +1,11 @@
+cargo-features = ["edition"]
+
 [package]
 name = "powhasher"
 version = "0.2.0"
 authors = ["Kaz Wesley <keziahw@gmail.com>"]
 license = "MIT/Apache-2.0"
+edition = "2018"
 
 [dependencies]
 core_affinity = "0.5.9"

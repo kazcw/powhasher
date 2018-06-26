@@ -7,28 +7,10 @@
 // libcpuid (rs wrapper broken, needs work/replacement)
 // memmap (no hugepage support)
 
-#![feature(attr_literals)]
-#![feature(custom_attribute)]
 #![feature(exact_chunks)]
 #![feature(iterator_step_by)]
 #![feature(try_from)]
 #![feature(type_ascription)]
-
-extern crate clap;
-extern crate serde;
-#[macro_use]
-extern crate serde_derive;
-extern crate env_logger;
-extern crate serde_json;
-#[macro_use]
-extern crate log;
-#[macro_use]
-extern crate failure;
-extern crate arrayvec;
-extern crate core_affinity;
-extern crate cryptonight;
-extern crate generic_array;
-extern crate typenum;
 
 mod poolclient;
 mod worker;
@@ -37,12 +19,16 @@ use std::fs::File;
 use std::mem;
 use std::thread;
 use std::time::Duration;
-use worker::stats;
-use worker::Worker;
+
+use crate::worker::stats;
+use crate::worker::Worker;
+
+use log::{debug, log};
+use serde_derive::{Deserialize, Serialize};
 
 const AGENT: &str = "pow#er/0.2.0";
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Deserialize, Debug, Serialize)]
 #[serde(deny_unknown_fields)]
 struct Config {
     pub pool: poolclient::Config,

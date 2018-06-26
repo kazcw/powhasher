@@ -11,9 +11,13 @@ use self::connection::{PoolClientReader, PoolClientWriter, RequestId};
 pub use self::connection::ClientResult;
 use self::messages::{ClientCommand, PoolEvent, PoolReply, Job};
 pub use self::worksource::WorkSource;
+
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
+
+use log::{debug, info, log, warn};
+use serde_derive::{Serialize, Deserialize};
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
