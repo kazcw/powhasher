@@ -32,7 +32,7 @@ use mmap::Mmap;
 use skein::digest::generic_array::typenum::U32;
 use skein::digest::generic_array::GenericArray;
 use state::State;
-use std::simd::i64x2;
+use std::arch::x86_64::__m128i as i64x2;
 
 fn finalize(mut data: State) -> GenericArray<u8, U32> {
     keccak::f1600((&mut data).into());

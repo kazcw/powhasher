@@ -1,6 +1,6 @@
 // copyright 2017 Kaz Wesley
 
-use std::simd::i64x2;
+use std::arch::x86_64::__m128i as i64x2;
 
 macro_rules! expand_round {
     ($round:expr, $mask:expr, $in0:ident, $in1:ident) => {{

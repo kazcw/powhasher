@@ -4,7 +4,7 @@
 
 use skein::digest::generic_array::typenum::U200;
 use skein::GenericArray;
-use std::simd::i64x2;
+use std::arch::x86_64::__m128i as i64x2;
 
 #[derive(Clone, Copy)]
 #[repr(C, align(128))]
