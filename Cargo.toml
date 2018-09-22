@@ -22,11 +22,6 @@ clap = "2.27.0"
 path = "cryptonight"
 version = "0.1.0"
 
-# debuggable release mode
 [profile.release]
-debug = true
-debug-assertions = true
-
-# fast release mode
-#[profile.release]
-# lto = true
+panic = "abort"
+lto = true

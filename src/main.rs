@@ -7,9 +7,13 @@
 // libcpuid (rs wrapper broken, needs work/replacement)
 // memmap (no hugepage support)
 
+#![feature(alloc_system)]
 #![feature(exact_chunks)]
 #![feature(try_from)]
 #![feature(type_ascription)]
+
+// no allocs on hot paths anyway
+extern crate alloc_system;
 
 mod poolclient;
 mod worker;
