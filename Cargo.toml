@@ -6,17 +6,17 @@ license = "MIT/Apache-2.0"
 edition = "2018"
 
 [dependencies]
-core_affinity = "0.5.9"
-failure = "0.1.1"
-generic-array = "0.11.0"
-serde = "1.0.34"
-serde_derive = "1.0.34"
-serde_json = "1.0.5"
-env_logger = "0.5.10"
-log = "0.4.2"
-arrayvec = { version = "0.4.6", features = ["serde-1"] }
-typenum = "1.9.0"
-clap = "2.27.0"
+core_affinity = "0.5"
+failure = "0.1.2"
+generic-array = "0.12"
+serde = "1"
+serde_derive = "1"
+serde_json = "1"
+env_logger = "0.5"
+log = "0.4"
+arrayvec = { version = "0.4", features = ["serde-1"] }
+typenum = "1"
+clap = "2"
 
 [dependencies.cryptonight]
 path = "cryptonight"

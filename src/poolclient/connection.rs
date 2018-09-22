@@ -15,7 +15,7 @@ use std::net::TcpStream;
 use std::time::Duration;
 
 use failure::Fail;
-use log::{debug, info, log, warn};
+use log::{debug, info, warn};
 use serde_derive::{Deserialize, Serialize};
 
 pub type ClientResult<T> = Result<T, ClientError>;

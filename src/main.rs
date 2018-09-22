@@ -26,7 +26,7 @@ use std::time::Duration;
 use crate::worker::stats;
 use crate::worker::Worker;
 
-use log::{debug, log};
+use log::debug;
 use serde_derive::{Deserialize, Serialize};
 
 const AGENT: &str = "pow#er/0.2.0";
