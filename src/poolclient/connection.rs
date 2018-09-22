@@ -4,7 +4,7 @@
 
 use crate::poolclient::messages::{ClientCommand, Credentials, ErrorReply, JsonMessage,
                            PoolCommand, PoolEvent, PoolReply, PoolRequest,
-                           Share, WorkerId, JobId, Job};
+                           Share, WorkerId, JobId, Job, JobAssignment};
 
 use serde_json;
 
@@ -138,18 +138,13 @@ pub fn connect(
     let stream_r = BufReader::with_capacity(1500, stream_r);
     let mut reader = PoolClientReader::new(stream_r);
     let (wid, job, status) = loop {
-        match reader.read()?.ok_or(ClientError::login_timed_out())? {
+        match reader.read()?.ok_or_else(ClientError::login_timed_out)? {
             PoolEvent::PoolReply {
                 id,
                 error: None,
-                result:
-                    Some(PoolReply::Job {
-                        worker_id,
-                        status,
-                        job,
-                        extensions,
-                    }),
+                result: Some(PoolReply::Job(assignment))
             } => {
+                let JobAssignment { worker_id, status, job, .. } = *assignment;
                 debug_assert_eq!(id, req_id);
                 break (worker_id, job, status);
             }

@@ -8,7 +8,7 @@ use std::str;
 
 fn nibble_to_hex(x: u8) -> Result<u8, ()> {
     match x {
-        0x0...0x9 => Ok(x - 0x0 + b'0'),
+        0x0...0x9 => Ok(x + b'0'),
         0xa...0xf => Ok(x - 0xa + b'a'),
         _ => Err(()),
     }
@@ -16,7 +16,7 @@ fn nibble_to_hex(x: u8) -> Result<u8, ()> {
 
 fn hex_to_nibble(x: u8) -> Result<u8, ()> {
     match x {
-        b'0'...b'9' => Ok(x - b'0' + 0x0),
+        b'0'...b'9' => Ok(x - b'0'),
         b'a'...b'f' => Ok(x - b'a' + 0xa),
         _ => Err(()),
     }
@@ -45,7 +45,7 @@ where
     buffer_to_hex(buffer.as_ref(), serializer)
 }
 
-pub fn u32_to_hex_string_bytes_padded(n: &u32) -> ArrayVec<[u8; 8]> {
+pub fn u32_to_hex_string_bytes_padded(n: u32) -> ArrayVec<[u8; 8]> {
     let mut buf = ArrayVec::new();
     for i in 0..4 {
         let x0 = (n >> (8*i+4)) & 0xfu32;
@@ -60,7 +60,7 @@ pub fn u32_to_hex_padded<S>(n: &u32, serializer: S) -> Result<S::Ok, S::Error>
 where
     S: Serializer,
 {
-    serializer.serialize_str(str::from_utf8(&u32_to_hex_string_bytes_padded(n)).unwrap())
+    serializer.serialize_str(str::from_utf8(&u32_to_hex_string_bytes_padded(*n)).unwrap())
 }
 
 pub fn hex_to_varbyte<'de, D>(deserializer: D) -> Result<Vec<u8>, D::Error>

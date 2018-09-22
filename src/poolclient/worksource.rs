@@ -49,7 +49,7 @@ impl WorkSource {
             }
         }
         self.last_job = Some(current.job_id);
-        Some((current.target, current.blob.clone(), current.algo.clone().unwrap_or("cn/1".to_owned()).to_owned()))
+        Some((current.target, current.blob.clone(), current.algo.clone().unwrap_or_else(|| "cn/1".to_owned()).to_owned()))
     }
 
     pub fn submit(&mut self, algo: &str, nonce: u32, result: &[u8; 32]) -> ClientResult<()> {

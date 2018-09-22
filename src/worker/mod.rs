@@ -46,7 +46,7 @@ impl Worker {
         core_affinity::set_for_current(core_ids[cfg.cpu as usize]);
         self.stat_updater.reset();
         let (mut target, blob, mut algo) = self.worksource.get_new_work().unwrap();
-        let start = ((blob[42] as u32) << 24) + worker_id;
+        let start = (u32::from(blob[42]) << 24) + worker_id;
         let mut hashes = cryptonight::hasher(&algo, &cfg.hasher, blob, (start..).step_by(step as usize));
         loop {
             let mut nonces = (start..).step_by(step as usize);

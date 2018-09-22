@@ -45,13 +45,13 @@ fn finalize(mut data: State) -> GenericArray<u8, U32> {
 }
 
 fn read_u64le(bytes: &[u8]) -> u64 {
-    (bytes[0] as u64) | ((bytes[1] as u64) << 8) | ((bytes[2] as u64) << 16)
-        | ((bytes[3] as u64) << 24) | ((bytes[4] as u64) << 32) | ((bytes[5] as u64) << 40)
-        | ((bytes[6] as u64) << 48) | ((bytes[7] as u64) << 56)
+    u64::from(bytes[0]) | (u64::from(bytes[1]) << 8) | (u64::from(bytes[2]) << 16)
+        | (u64::from(bytes[3]) << 24) | (u64::from(bytes[4]) << 32) | (u64::from(bytes[5]) << 40)
+        | (u64::from(bytes[6]) << 48) | (u64::from(bytes[7]) << 56)
 }
 
 fn set_nonce(blob: &mut [u8], nonce: u32) {
-    blob[39] = (nonce >> 0x00) as u8;
+    blob[39] = nonce as u8;
     blob[40] = (nonce >> 0x08) as u8;
     blob[41] = (nonce >> 0x10) as u8;
     blob[42] = (nonce >> 0x18) as u8;

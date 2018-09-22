@@ -92,18 +92,21 @@ pub struct JsonMessage<T> {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+pub struct JobAssignment {
+    #[serde(rename = "id")]
+    pub worker_id: WorkerId,
+    pub job: Job,
+    #[serde(default)]
+    pub status: Option<String>,
+    #[serde(default)]
+    pub extensions: Vec<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum PoolReply {
     /// reply to getjob (not implemented) and login
-    Job {
-        #[serde(rename = "id")]
-        worker_id: WorkerId,
-        job: Job,
-        #[serde(default)]
-        status: Option<String>,
-        #[serde(default)]
-        extensions: Vec<String>,
-    },
+    Job(Box<JobAssignment>),
     /// reply to submit
     Status { status: String },
 }
