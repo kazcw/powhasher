@@ -1,12 +1,10 @@
 // copyright 2017 Kaz Wesley
 
 #![feature(asm)]
-#![feature(attr_literals)]
 #![feature(ptr_internals)]
 #![feature(repr_simd)]
 #![feature(stdsimd)]
 #![feature(type_ascription)]
-#![feature(unique)]
 #![feature(untagged_unions)]
 #![cfg_attr(test, feature(plugin))]
 #![cfg_attr(test, plugin(hex_literals))]

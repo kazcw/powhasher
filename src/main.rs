@@ -8,7 +8,6 @@
 // memmap (no hugepage support)
 
 #![feature(exact_chunks)]
-#![feature(iterator_step_by)]
 #![feature(try_from)]
 #![feature(type_ascription)]
 

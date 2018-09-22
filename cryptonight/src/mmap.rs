@@ -3,9 +3,9 @@
 use libc::{self, c_void, MAP_ANONYMOUS, MAP_HUGETLB, MAP_PRIVATE, PROT_READ, PROT_WRITE};
 use std::mem::size_of;
 use std::ops::{Deref, DerefMut};
-use std::ptr::{self, Unique};
+use std::ptr::{self, NonNull};
 
-pub struct Mmap<T>(Unique<T>);
+pub struct Mmap<T>(NonNull<T>);
 
 impl<T> Mmap<T> {
     pub fn new_huge() -> Option<Self> {
@@ -21,7 +21,7 @@ impl<T> Mmap<T> {
             if pmap as *mut libc::c_void == libc::MAP_FAILED {
                 return None;
             }
-            Some(Mmap(Unique::new(pmap)?))
+            Some(Mmap(NonNull::new(pmap)?))
         }
     }
 }
