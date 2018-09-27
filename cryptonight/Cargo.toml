@@ -4,6 +4,7 @@ version = "0.1.0"
 authors = ["Kaz Wesley <keziahw@gmail.com>"]
 license = "MIT/Apache-2.0"
 build = "build.rs"
+edition = "2018"
 
 [dependencies]
 groestl-aesni = "0.1.3"

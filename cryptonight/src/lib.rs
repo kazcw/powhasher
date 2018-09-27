@@ -9,16 +9,8 @@
 #![cfg_attr(test, feature(plugin))]
 #![cfg_attr(test, plugin(hex_literals))]
 
-extern crate blake;
-extern crate groestl_aesni;
-extern crate jh_x86_64;
-extern crate keccak;
-extern crate libc;
-extern crate serde;
 #[macro_use]
 extern crate serde_derive;
-extern crate sha3;
-extern crate skein;
 
 mod aesni;
 mod cn_aesni;
@@ -26,11 +18,12 @@ mod mmap;
 mod state;
 
 use blake::digest::Digest;
-use mmap::Mmap;
 use skein::digest::generic_array::typenum::U32;
 use skein::digest::generic_array::GenericArray;
-use state::State;
 use std::arch::x86_64::__m128i as i64x2;
+
+use self::mmap::Mmap;
+use self::state::State;
 
 fn finalize(mut data: State) -> GenericArray<u8, U32> {
     keccak::f1600((&mut data).into());

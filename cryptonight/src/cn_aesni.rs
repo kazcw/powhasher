@@ -1,6 +1,6 @@
 // copyright 2017 Kaz Wesley
 
-use aesni;
+use crate::aesni;
 use std::os::raw::c_void;
 use std::arch::x86_64::__m128i as i64x2;
 
