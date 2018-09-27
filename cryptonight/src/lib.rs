@@ -6,8 +6,6 @@
 #![feature(stdsimd)]
 #![feature(type_ascription)]
 #![feature(untagged_unions)]
-#![cfg_attr(test, feature(plugin))]
-#![cfg_attr(test, plugin(hex_literals))]
 
 #[macro_use]
 extern crate serde_derive;
@@ -521,74 +519,77 @@ impl<Noncer: Iterator<Item = u32>> Hasher<Noncer> for CryptoNightHeavy<Noncer> {
 mod tests {
     use super::*;
 
+    use hex_literal::{hex, hex_impl};
+
     // "official" slow_hash test vectors, from tests-slow-1.txt
-    const INPUT0: &[u8] = hex!(
+    const INPUT0: &[u8] = &hex!(
         "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
     );
-    const INPUT1: &[u8] = hex!("00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000");
-    const INPUT2: &[u8] = hex!("8519e039172b0d70e5ca7b3383d6b3167315a422747b73f019cf9528f0fde341fd0f2a63030ba6450525cf6de31837669af6f1df8131faf50aaab8d3a7405589");
-    const INPUT3: &[u8] = hex!("37a636d7dafdf259b7287eddca2f58099e98619d2f99bdb8969d7b14498102cc065201c8be90bd777323f449848b215d2977c92c4c1c2da36ab46b2e389689ed97c18fec08cd3b03235c5e4c62a37ad88c7b67932495a71090e85dd4020a9300");
-    const INPUT4: &[u8] = hex!(
+    const INPUT1: &[u8] = &hex!("00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000");
+    const INPUT2: &[u8] = &hex!("8519e039172b0d70e5ca7b3383d6b3167315a422747b73f019cf9528f0fde341fd0f2a63030ba6450525cf6de31837669af6f1df8131faf50aaab8d3a7405589");
+    const INPUT3: &[u8] = &hex!("37a636d7dafdf259b7287eddca2f58099e98619d2f99bdb8969d7b14498102cc065201c8be90bd777323f449848b215d2977c92c4c1c2da36ab46b2e389689ed97c18fec08cd3b03235c5e4c62a37ad88c7b67932495a71090e85dd4020a9300");
+    const INPUT4: &[u8] = &hex!(
         "38274c97c45a172cfc97679870422e3a1ab0784960c60514d816271415c306ee3a3ed1a77e31f6a885c3cb"
     );
-    const OUTPUT0: &[u8] = hex!("b5a7f63abb94d07d1a6445c36c07c7e8327fe61b1647e391b4c7edae5de57a3d");
-    const OUTPUT1: &[u8] = hex!("80563c40ed46575a9e44820d93ee095e2851aa22483fd67837118c6cd951ba61");
-    const OUTPUT2: &[u8] = hex!("5bb40c5880cef2f739bdb6aaaf16161eaae55530e7b10d7ea996b751a299e949");
-    const OUTPUT3: &[u8] = hex!("613e638505ba1fd05f428d5c9f8e08f8165614342dac419adc6a47dce257eb3e");
-    const OUTPUT4: &[u8] = hex!("ed082e49dbd5bbe34a3726a0d1dad981146062b39d36d62c71eb1ed8ab49459b");
-    const LITEOU0: &[u8] = hex!("f2360d43b1c6c343e9f53da17e213a51325b05e7909ae9405f828ee45b8282f4");
-    const LITEOU1: &[u8] = hex!("4c3428f39e1f9ecda3b0726fd4f4fca62843597c480f033ae38d113282b273bf");
-    const LITEOU2: &[u8] = hex!("f828ff6bf19a6e72a77319808e43f745f90f47eceb698e4319d2484404b081e8");
-    const LITEOU3: &[u8] = hex!("61e3cb5e046ae4ac5d03f8ec6bd7a9a80d5e2573817429d1624735f66aff4b11");
-    const LITEOU4: &[u8] = hex!("12c2f26b89cc514707ac0fb953f1f72581eb468de2a5d4d4cf95c0d1b32f7285");
-    const LIT1OU0: &[u8] = hex!("5655313715525895d2312bfba9b7f5e45f441b8b8d3957eaea0b6039d1bc0713");
-    const LIT1OU1: &[u8] = hex!("173c9db34c9643ba689e16044f5c273c4c5543b210a4d5248352ac536064a850");
-    const LIT1OU2: &[u8] = hex!("bb196c4c0c9dc1c4e44c2a6f9e61200fe3c8b4ef232134e65c3c7862c7d3df6a");
-    const LIT1OU3: &[u8] = hex!("452103731dd8d70ce32f726b8e71fcd91005fb3cb2abd78f2b7357bb07f8c8bc");
-    const LIT1OU4: &[u8] = hex!("4e785376ed2733262d83cc25321a9d0003f5395315de919acf1b97f0a84fbd2d");
-    const HEAVOU0: &[u8] = hex!("8e9b0d37a75eea071c224d10522b9e12a7f1a96a317efd92db41e593133574a4");
-    const HEAVOU1: &[u8] = hex!("3ec94bf7800410ff50de0767196bc60d90e9598a7c70a7d27f4c090d7f25377a");
-    const HEAVOU2: &[u8] = hex!("f68db02d511e3f6641d770ca907157f2d68e7e08f95fe349ed421e9607eb3d6d");
-    const HEAVOU3: &[u8] = hex!("04b33b61e528836cc825e76ff11967b792bf026129261e05b846e241c286140e");
-    const HEAVOU4: &[u8] = hex!("dfa4fc4da8edc4bbf311e9eacaebfbf91be64061ded4e71d3c9347337a47e7ac");
-    const XTLOUT0: &[u8] = hex!("eee9cd0f335ac687bb68a7155e7bd07be6b639ef133fe8795a47f5d73fa4dff3");
-    const XTLOUT1: &[u8] = hex!("c783fa00e092c9f1c887b18fcb6666f04a0bc3ab59d8262c20febd1248eef4ea");
-    const XTLOUT2: &[u8] = hex!("5b6f54b401ce5546a1426514b40842d09f92411349a5974a323e662c5d9f9b50");
-    const XTLOUT3: &[u8] = hex!("fbc3fc330f1759e118c753daeda4e0914a2d0aaba6be71575b7fcd5175666722");
-    const XTLOUT4: &[u8] = hex!("3bd752507fee87037fe144d84ced691a60b2e7765719385dcac52cbbeaca27ae");
+    const OUTPUT0: &[u8] = &hex!("b5a7f63abb94d07d1a6445c36c07c7e8327fe61b1647e391b4c7edae5de57a3d");
+    const OUTPUT1: &[u8] = &hex!("80563c40ed46575a9e44820d93ee095e2851aa22483fd67837118c6cd951ba61");
+    const OUTPUT2: &[u8] = &hex!("5bb40c5880cef2f739bdb6aaaf16161eaae55530e7b10d7ea996b751a299e949");
+    const OUTPUT3: &[u8] = &hex!("613e638505ba1fd05f428d5c9f8e08f8165614342dac419adc6a47dce257eb3e");
+    const OUTPUT4: &[u8] = &hex!("ed082e49dbd5bbe34a3726a0d1dad981146062b39d36d62c71eb1ed8ab49459b");
+    const LITEOU0: &[u8] = &hex!("f2360d43b1c6c343e9f53da17e213a51325b05e7909ae9405f828ee45b8282f4");
+    const LITEOU1: &[u8] = &hex!("4c3428f39e1f9ecda3b0726fd4f4fca62843597c480f033ae38d113282b273bf");
+    const LITEOU2: &[u8] = &hex!("f828ff6bf19a6e72a77319808e43f745f90f47eceb698e4319d2484404b081e8");
+    const LITEOU3: &[u8] = &hex!("61e3cb5e046ae4ac5d03f8ec6bd7a9a80d5e2573817429d1624735f66aff4b11");
+    const LITEOU4: &[u8] = &hex!("12c2f26b89cc514707ac0fb953f1f72581eb468de2a5d4d4cf95c0d1b32f7285");
+    const LIT1OU0: &[u8] = &hex!("5655313715525895d2312bfba9b7f5e45f441b8b8d3957eaea0b6039d1bc0713");
+    const LIT1OU1: &[u8] = &hex!("173c9db34c9643ba689e16044f5c273c4c5543b210a4d5248352ac536064a850");
+    const LIT1OU2: &[u8] = &hex!("bb196c4c0c9dc1c4e44c2a6f9e61200fe3c8b4ef232134e65c3c7862c7d3df6a");
+    const LIT1OU3: &[u8] = &hex!("452103731dd8d70ce32f726b8e71fcd91005fb3cb2abd78f2b7357bb07f8c8bc");
+    const LIT1OU4: &[u8] = &hex!("4e785376ed2733262d83cc25321a9d0003f5395315de919acf1b97f0a84fbd2d");
+    const HEAVOU0: &[u8] = &hex!("8e9b0d37a75eea071c224d10522b9e12a7f1a96a317efd92db41e593133574a4");
+    const HEAVOU1: &[u8] = &hex!("3ec94bf7800410ff50de0767196bc60d90e9598a7c70a7d27f4c090d7f25377a");
+    const HEAVOU2: &[u8] = &hex!("f68db02d511e3f6641d770ca907157f2d68e7e08f95fe349ed421e9607eb3d6d");
+    const HEAVOU3: &[u8] = &hex!("04b33b61e528836cc825e76ff11967b792bf026129261e05b846e241c286140e");
+    const HEAVOU4: &[u8] = &hex!("dfa4fc4da8edc4bbf311e9eacaebfbf91be64061ded4e71d3c9347337a47e7ac");
+    const XTLOUT0: &[u8] = &hex!("eee9cd0f335ac687bb68a7155e7bd07be6b639ef133fe8795a47f5d73fa4dff3");
+    const XTLOUT1: &[u8] = &hex!("c783fa00e092c9f1c887b18fcb6666f04a0bc3ab59d8262c20febd1248eef4ea");
+    const XTLOUT2: &[u8] = &hex!("5b6f54b401ce5546a1426514b40842d09f92411349a5974a323e662c5d9f9b50");
+    const XTLOUT3: &[u8] = &hex!("fbc3fc330f1759e118c753daeda4e0914a2d0aaba6be71575b7fcd5175666722");
+    const XTLOUT4: &[u8] = &hex!("3bd752507fee87037fe144d84ced691a60b2e7765719385dcac52cbbeaca27ae");
 
     // test-slow-2.txt
-    const NEWIN0: &[u8] = hex!(
+    const NEWIN0: &[u8] = &hex!(
         "5468697320697320612074657374205468697320697320612074657374205468697320697320612074657374");
-    const NEWIN1: &[u8] = hex!(
+    const NEWIN1: &[u8] = &hex!(
         "4c6f72656d20697073756d20646f6c6f722073697420616d65742c20636f6e73656374657475722061646970697363696e67");
-    const NEWIN2: &[u8] = hex!(
+    const NEWIN2: &[u8] = &hex!(
         "656c69742c2073656420646f20656975736d6f642074656d706f7220696e6369646964756e74207574206c61626f7265");
-    const NEWIN3: &[u8] = hex!(
+    const NEWIN3: &[u8] = &hex!(
         "657420646f6c6f7265206d61676e6120616c697175612e20557420656e696d206164206d696e696d2076656e69616d2c");
-    const NEWIN4: &[u8] = hex!(
+    const NEWIN4: &[u8] = &hex!(
         "71756973206e6f737472756420657865726369746174696f6e20756c6c616d636f206c61626f726973206e697369");
-    const NEWIN5: &[u8] = hex!(
+    const NEWIN5: &[u8] = &hex!(
         "757420616c697175697020657820656120636f6d6d6f646f20636f6e7365717561742e20447569732061757465");
-    const NEWIN6: &[u8] = hex!(
+    const NEWIN6: &[u8] = &hex!(
         "697275726520646f6c6f7220696e20726570726568656e646572697420696e20766f6c7570746174652076656c6974");
-    const NEWIN7: &[u8] = hex!(
+    const NEWIN7: &[u8] = &hex!(
         "657373652063696c6c756d20646f6c6f726520657520667567696174206e756c6c612070617269617475722e");
-    const NEWIN8: &[u8] = hex!(
+    const NEWIN8: &[u8] = &hex!(
         "4578636570746575722073696e74206f6363616563617420637570696461746174206e6f6e2070726f6964656e742c");
-    const NEWIN9: &[u8] = hex!(
+    const NEWIN9: &[u8] = &hex!(
         "73756e7420696e2063756c706120717569206f666669636961206465736572756e74206d6f6c6c697420616e696d20696420657374206c61626f72756d2e");
 
-    const CN2OU0: &[u8] = hex!("2e6ee8cc718c61d3a59ecdfca6e56ca5f560b4bb75c201ed3bb001c407833e79");
-    const CN2OU1: &[u8] = hex!("35957227ce70064db4c1b5ece364282fd5425bf4fee5a0e3595b9f3f5067b90b");
-    const CN2OU2: &[u8] = hex!("f6398c333cb775cbf81fbb1043f0d7c791dac5bf6182f6ad782ba11fe6c7234f");
-    const CN2OU3: &[u8] = hex!("5bb096fc037aabc50d7e84b356ea673357684e7d29395bd32b876440efcbaf72");
-    const CN2OU4: &[u8] = hex!("f3e44470ff4bc947c4cb020168d636fc894c3c07629266b93e2fbcf42d9664a5");
-    const CN2OU5: &[u8] = hex!("13d3dc2794414932050ff7b165de51b283018990f111c3191bca66fe986fdab9");
-    const CN2OU6: &[u8] = hex!("9fcaa9892f1faef36624d865cb7e7588b4b74fc581b7195b586b3b0e802b72b8");
-    const CN2OU7: &[u8] = hex!("30c262cf4592136088dcf1064b732c29550b46accf54d7993d8532f5a5a9e0f3");
-    const CN2OU8: &[u8] = hex!("88536691d2d8eb6c8dfbb2597ab50fbbd9f8c2834281e1bb70616f48094d68c8");
-    const CN2OU9: &[u8] = hex!("5964da99f4a273393e464f40070122f045eecfed1309ac25dd322e1fb052dc45");
+    const CN2OU0: &[u8] = &hex!("2e6ee8cc718c61d3a59ecdfca6e56ca5f560b4bb75c201ed3bb001c407833e79");
+    const CN2OU1: &[u8] = &hex!("35957227ce70064db4c1b5ece364282fd5425bf4fee5a0e3595b9f3f5067b90b");
+    const CN2OU2: &[u8] = &hex!("f6398c333cb775cbf81fbb1043f0d7c791dac5bf6182f6ad782ba11fe6c7234f");
+    const CN2OU3: &[u8] = &hex!("5bb096fc037aabc50d7e84b356ea673357684e7d29395bd32b876440efcbaf72");
+    const CN2OU4: &[u8] = &hex!("f3e44470ff4bc947c4cb020168d636fc894c3c07629266b93e2fbcf42d9664a5");
+    const CN2OU5: &[u8] = &hex!("13d3dc2794414932050ff7b165de51b283018990f111c3191bca66fe986fdab9");
+    const CN2OU6: &[u8] = &hex!("9fcaa9892f1faef36624d865cb7e7588b4b74fc581b7195b586b3b0e802b72b8");
+    const CN2OU7: &[u8] = &hex!("30c262cf4592136088dcf1064b732c29550b46accf54d7993d8532f5a5a9e0f3");
+    const CN2OU8: &[u8] = &hex!("88536691d2d8eb6c8dfbb2597ab50fbbd9f8c2834281e1bb70616f48094d68c8");
+    const CN2OU9: &[u8] = &hex!("5964da99f4a273393e464f40070122f045eecfed1309ac25dd322e1fb052dc45");
+
 
     fn test_cn(input: &[u8], output: &[u8], nonce: u32) {
         assert_eq!(

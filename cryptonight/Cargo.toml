@@ -18,7 +18,7 @@ serde = "1"
 serde_derive = "1"
 
 [dev-dependencies]
-hex_literals = "0.1.6"
+hex-literal = "0.1"
 
 [profile.test]
 opt-level = 2
