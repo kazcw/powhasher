@@ -15,7 +15,7 @@
 // no allocs on hot paths anyway
 extern crate alloc_system;
 
-mod poolclient;
+mod stats;
 mod worker;
 mod worksource;
 
@@ -25,10 +25,9 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
 
-use crate::worker::stats;
 use crate::worker::Worker;
 
-use crate::poolclient::{PoolClient, MessageHandler, RequestId, Job, JobAssignment, ErrorReply};
+use cn_stratum::client::{PoolClient, MessageHandler, RequestId, Job, JobAssignment, ErrorReply};
 use crate::worksource::WorkSource;
 
 use log::*;
@@ -36,14 +35,21 @@ use serde_derive::{Deserialize, Serialize};
 
 const AGENT: &str = "pow#er/0.2.0";
 
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ClientConfig {
+    pub address: String,
+    pub login: String,
+    pub pass: String,
+    pub keepalive_s: Option<u64>,
+}
+
 #[derive(Deserialize, Debug, Serialize)]
 #[serde(deny_unknown_fields)]
 struct Config {
-    pub pool: poolclient::Config,
+    pub pool: ClientConfig,
     pub workers: Vec<worker::Config>,
 }
-
-
 
 fn main() {
     env_logger::init();
@@ -74,11 +80,10 @@ fn main() {
     debug!("config: {:?}", &cfg);
 
     let worksource = {
-        let (client, work) = PoolClient::connect(&cfg.pool, AGENT, |job| {
-            let work = Arc::new(Mutex::new(job));
-            let handler = Handler::new(Arc::clone(&work));
-            (handler, work)
-        }).unwrap();
+        let cfg = &cfg.pool;
+        let keepalive = cfg.keepalive_s.map(Duration::from_secs);
+        let client = PoolClient::connect(&cfg.address, &cfg.login, &cfg.pass, keepalive, AGENT, Client::new).unwrap();
+        let work = client.handler().job_handle();
         let writer = client.write_handle();
         thread::Builder::new()
             .name("poolclient".into())
@@ -141,17 +146,22 @@ fn main() {
 #[cfg(test)]
 mod tests {}
 
-pub struct Handler {
+pub struct Client {
     job: Arc<Mutex<Job>>,
 }
 
-impl Handler {
-    fn new(job: Arc<Mutex<Job>>) -> Self {
-        Handler { job }
+impl Client {
+    fn new(job: Job) -> Self {
+        let job = Arc::new(Mutex::new(job));
+        Client { job }
+    }
+
+    fn job_handle(&self) -> Arc<Mutex<Job>> {
+        Arc::clone(&self.job)
     }
 }
 
-impl MessageHandler for Handler {
+impl MessageHandler for Client {
     fn job_command(&mut self, j: Job) {
         debug!("new job: {:?}", j);
         *self.job.lock().unwrap() = j;

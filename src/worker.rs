@@ -1,9 +1,7 @@
 // copyright 2017 Kaz Wesley
 
-pub mod stats;
-
 use crate::worksource::WorkSource;
-use self::stats::StatUpdater;
+use crate::stats::StatUpdater;
 
 use core_affinity::{self, CoreId};
 use cryptonight::{self, HasherConfig};

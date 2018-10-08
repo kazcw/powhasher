@@ -1,6 +1,7 @@
 // copyright 2017 Kaz Wesley
 
-use crate::poolclient::{Job, JobId, ClientResult, PoolClientWriter};
+use cn_stratum::client::{Job, JobId, PoolClientWriter};
+use cn_stratum::client::Result as ClientResult;
 
 use std::sync::{Arc, Mutex};
 
@@ -43,12 +44,12 @@ impl WorkSource {
     pub fn get_new_work(&mut self) -> Option<(u64, Vec<u8>, String)> {
         let current = self.work.lock().unwrap();
         if let Some(last_job) = self.last_job {
-            if last_job == current.job_id {
+            if last_job == current.id() {
                 return None;
             }
         }
-        self.last_job = Some(current.job_id);
-        Some((current.target, current.blob.clone(), current.algo.clone().unwrap_or_else(|| "cn/1".to_owned()).to_owned()))
+        self.last_job = Some(current.id());
+        Some((current.target(), current.blob().to_vec(), current.algo().map(|x| x.to_string()).unwrap_or_else(|| "cn/1".to_owned()).to_owned()))
     }
 
     pub fn submit(&mut self, algo: &str, nonce: u32, result: &[u8; 32]) -> ClientResult<()> {
