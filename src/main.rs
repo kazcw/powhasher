@@ -9,8 +9,6 @@
 
 #![feature(alloc_system)]
 #![feature(chunks_exact)]
-#![feature(try_from)]
-#![feature(type_ascription)]
 
 // no allocs on hot paths anyway
 extern crate alloc_system;
@@ -186,21 +184,15 @@ impl MessageHandler for Client {
 
 use crate::stats::StatUpdater;
 use core_affinity::CoreId;
-use cryptonight::{self, HasherConfig};
-
-use std::convert::TryFrom;
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct WorkerConfig {
     cpu: u32,
-    hasher: HasherConfig,
+    hasher: cryptonight::HasherConfig,
 }
 
-/// Number of hashes to do in a batch, i.e. between checks for new work.
-const SINGLEHASH_BATCH_SIZE: usize = 1;
-
-fn is_hit(hash: &[u8; 32], target: u64) -> bool {
+fn is_hit(hash: [u8; 32], target: u64) -> bool {
     let hashle64 = hash[24..].iter().enumerate().fold(0u64, |x, (i, v)| {
         x | u64::from(*v) << (i * 8)
     });
@@ -213,23 +205,21 @@ pub fn run_worker(cfg: WorkerConfig, mut worksource: WorkSource, mut stat_update
     stat_updater.reset();
     let (mut target, blob, mut algo) = worksource.get_new_work().unwrap();
     let start = (u32::from(blob[42]) << 24) + worker_id;
-    let mut hashes = cryptonight::hasher(&algo, &cfg.hasher, blob, (start..).step_by(step as usize));
+    let nonce_seq = (start..).step_by(step as usize);
+    let mut hashes = cryptonight::hasher(&algo, &cfg.hasher, blob, nonce_seq.clone());
     loop {
-        let mut nonces = (start..).step_by(step as usize);
+        let mut nonces = nonce_seq.clone();
         loop {
             let ws = &mut worksource;
-            (hashes
-                .by_ref()
-                .take(SINGLEHASH_BATCH_SIZE)
-                .map(|h| *<&[u8; 32]>::try_from(h.as_slice()).unwrap())
-                .zip(nonces.by_ref())
-                .filter(|(h, _n)| is_hit(h, target))
-                .map(|(h, n)| ws.submit(&algo, n, &h))
-                .collect(): Result<Vec<_>, _>)
-                .unwrap();
-            stat_updater.log_hashes(SINGLEHASH_BATCH_SIZE);
+            let mut h = [0u8; 32];
+            h.copy_from_slice(&hashes.by_ref().next().unwrap());
+            let n = nonces.by_ref().next().unwrap();
+            if is_hit(h, target) {
+                ws.submit(&algo, n, &h).unwrap();
+            }
+            stat_updater.log_hashes(1);
             if let Some((newt, newb, newa)) = ws.get_new_work() {
-                hashes = cryptonight::hasher(&newa, &cfg.hasher, newb, (start..).step_by(step as usize));
+                hashes = cryptonight::hasher(&newa, &cfg.hasher, newb, nonce_seq.clone());
                 target = newt;
                 algo = newa;
                 break;
