@@ -16,7 +16,6 @@
 extern crate alloc_system;
 
 mod stats;
-mod worker;
 mod worksource;
 
 use std::fs::File;
@@ -24,8 +23,6 @@ use std::mem;
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
-
-use crate::worker::Worker;
 
 use cn_stratum::client::{PoolClient, MessageHandler, RequestId, Job, JobAssignment, ErrorReply};
 use crate::worksource::WorkSource;
@@ -48,7 +45,7 @@ pub struct ClientConfig {
 #[serde(deny_unknown_fields)]
 struct Config {
     pub pool: ClientConfig,
-    pub workers: Vec<worker::Config>,
+    pub workers: Vec<WorkerConfig>,
 }
 
 fn main() {
@@ -99,12 +96,12 @@ fn main() {
         .enumerate()
         .map(|(i, w)| {
             let (stat_updater, stat_reader) = stats::channel();
-            let worker = Worker::new(worksource.clone(), stat_updater);
-            let core_ids = core_ids.clone();
+            let ws = worksource.clone();
+            let core = core_ids[w.cpu as usize];
             debug!("starting worker{} with config: {:?}", i, &w);
             thread::Builder::new()
                 .name(format!("worker{}", i))
-                .spawn(move || worker.run(w, core_ids, i as u32, worker_count as u32))
+                .spawn(move || run_worker(w, ws, stat_updater, core, i as u32, worker_count as u32))
                 .unwrap();
             stat_reader
         })
@@ -186,3 +183,58 @@ impl MessageHandler for Client {
         warn!("unexpected job reply...");
     }
 }
+
+use crate::stats::StatUpdater;
+use core_affinity::CoreId;
+use cryptonight::{self, HasherConfig};
+
+use std::convert::TryFrom;
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct WorkerConfig {
+    cpu: u32,
+    hasher: HasherConfig,
+}
+
+/// Number of hashes to do in a batch, i.e. between checks for new work.
+const SINGLEHASH_BATCH_SIZE: usize = 1;
+
+fn is_hit(hash: &[u8; 32], target: u64) -> bool {
+    let hashle64 = hash[24..].iter().enumerate().fold(0u64, |x, (i, v)| {
+        x | u64::from(*v) << (i * 8)
+    });
+    hashle64 <= target
+}
+
+pub fn run_worker(cfg: WorkerConfig, mut worksource: WorkSource, mut stat_updater: StatUpdater, core: CoreId, worker_id: u32, step: u32) -> ! {
+    // TODO: CoreId error handling
+    core_affinity::set_for_current(core);
+    stat_updater.reset();
+    let (mut target, blob, mut algo) = worksource.get_new_work().unwrap();
+    let start = (u32::from(blob[42]) << 24) + worker_id;
+    let mut hashes = cryptonight::hasher(&algo, &cfg.hasher, blob, (start..).step_by(step as usize));
+    loop {
+        let mut nonces = (start..).step_by(step as usize);
+        loop {
+            let ws = &mut worksource;
+            (hashes
+                .by_ref()
+                .take(SINGLEHASH_BATCH_SIZE)
+                .map(|h| *<&[u8; 32]>::try_from(h.as_slice()).unwrap())
+                .zip(nonces.by_ref())
+                .filter(|(h, _n)| is_hit(h, target))
+                .map(|(h, n)| ws.submit(&algo, n, &h))
+                .collect(): Result<Vec<_>, _>)
+                .unwrap();
+            stat_updater.log_hashes(SINGLEHASH_BATCH_SIZE);
+            if let Some((newt, newb, newa)) = ws.get_new_work() {
+                hashes = cryptonight::hasher(&newa, &cfg.hasher, newb, (start..).step_by(step as usize));
+                target = newt;
+                algo = newa;
+                break;
+            }
+        }
+    }
+}
+
