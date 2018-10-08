@@ -184,19 +184,13 @@ impl MessageHandler for Client {
 
 use crate::stats::StatUpdater;
 use core_affinity::CoreId;
+use byteorder::{ByteOrder, LE};
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct WorkerConfig {
     cpu: u32,
     hasher: cryptonight::HasherConfig,
-}
-
-fn is_hit(hash: [u8; 32], target: u64) -> bool {
-    let hashle64 = hash[24..].iter().enumerate().fold(0u64, |x, (i, v)| {
-        x | u64::from(*v) << (i * 8)
-    });
-    hashle64 <= target
 }
 
 pub fn run_worker(cfg: WorkerConfig, mut worksource: WorkSource, mut stat_updater: StatUpdater, core: CoreId, worker_id: u32, step: u32) -> ! {
@@ -214,7 +208,7 @@ pub fn run_worker(cfg: WorkerConfig, mut worksource: WorkSource, mut stat_update
             let mut h = [0u8; 32];
             h.copy_from_slice(&hashes.by_ref().next().unwrap());
             let n = nonces.by_ref().next().unwrap();
-            if is_hit(h, target) {
+            if LE::read_u64(&h[24..]) <= target {
                 ws.submit(&algo, n, &h).unwrap();
             }
             stat_updater.log_hashes(1);
