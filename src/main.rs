@@ -8,7 +8,7 @@
 // memmap (no hugepage support)
 
 #![feature(alloc_system)]
-#![feature(exact_chunks)]
+#![feature(chunks_exact)]
 #![feature(try_from)]
 #![feature(type_ascription)]
 
@@ -17,16 +17,21 @@ extern crate alloc_system;
 
 mod poolclient;
 mod worker;
+mod worksource;
 
 use std::fs::File;
 use std::mem;
+use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
 
 use crate::worker::stats;
 use crate::worker::Worker;
 
-use log::debug;
+use crate::poolclient::{PoolClient, MessageHandler, RequestId, Job, JobAssignment, ErrorReply};
+use crate::worksource::WorkSource;
+
+use log::*;
 use serde_derive::{Deserialize, Serialize};
 
 const AGENT: &str = "pow#er/0.2.0";
@@ -37,6 +42,8 @@ struct Config {
     pub pool: poolclient::Config,
     pub workers: Vec<worker::Config>,
 }
+
+
 
 fn main() {
     env_logger::init();
@@ -66,7 +73,19 @@ fn main() {
         .unwrap();
     debug!("config: {:?}", &cfg);
 
-    let worksource = poolclient::run_thread(&cfg.pool, AGENT).unwrap();
+    let worksource = {
+        let (client, work) = PoolClient::connect(&cfg.pool, AGENT, |job| {
+            let work = Arc::new(Mutex::new(job));
+            let handler = Handler::new(Arc::clone(&work));
+            (handler, work)
+        }).unwrap();
+        let writer = client.write_handle();
+        thread::Builder::new()
+            .name("poolclient".into())
+            .spawn(move || client.run())
+            .unwrap();
+        WorkSource::new(work, writer)
+    };
 
     let core_ids = core_affinity::get_core_ids().unwrap();
     let worker_count = cfg.workers.len();
@@ -121,3 +140,39 @@ fn main() {
 
 #[cfg(test)]
 mod tests {}
+
+pub struct Handler {
+    job: Arc<Mutex<Job>>,
+}
+
+impl Handler {
+    fn new(job: Arc<Mutex<Job>>) -> Self {
+        Handler { job }
+    }
+}
+
+impl MessageHandler for Handler {
+    fn job_command(&mut self, j: Job) {
+        debug!("new job: {:?}", j);
+        *self.job.lock().unwrap() = j;
+    }
+
+    fn error_reply(&mut self, _id: RequestId, error: ErrorReply) {
+        warn!(
+            "received error: {:?}, assuming that indicates a stale share",
+            error
+        );
+    }
+
+    fn status_reply(&mut self, _id: RequestId, status: String) {
+        if status == "OK" {
+            debug!("received status OK");
+        } else {
+            info!("received status {:?}, assuming that means OK", status);
+        }
+    }
+
+    fn job_reply(&mut self, _id: RequestId, _job: Box<JobAssignment>) {
+        warn!("unexpected job reply...");
+    }
+}

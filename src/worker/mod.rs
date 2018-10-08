@@ -2,7 +2,7 @@
 
 pub mod stats;
 
-use crate::poolclient::WorkSource;
+use crate::worksource::WorkSource;
 use self::stats::StatUpdater;
 
 use core_affinity::{self, CoreId};

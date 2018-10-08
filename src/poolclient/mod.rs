@@ -5,18 +5,17 @@
 mod connection;
 mod hexbytes;
 mod messages;
-mod worksource;
 
-use self::connection::{PoolClientReader, PoolClientWriter, RequestId};
-pub use self::connection::ClientResult;
-use self::messages::{ClientCommand, PoolEvent, PoolReply, Job};
-pub use self::worksource::WorkSource;
+use self::connection::PoolClientReader;
+use self::messages::{PoolReply, PoolEvent, ClientCommand};
+
+pub use self::connection::{ClientResult, RequestId, PoolClientWriter};
+pub use self::messages::{ErrorReply, Job, JobAssignment, JobId};
 
 use std::sync::{Arc, Mutex};
-use std::thread;
 use std::time::Duration;
 
-use log::{debug, info, warn};
+use log::*;
 use serde_derive::{Serialize, Deserialize};
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -28,56 +27,50 @@ pub struct Config {
     pub keepalive_s: Option<u64>,
 }
 
-struct PoolClient {
-    writer: Arc<Mutex<PoolClientWriter>>,
-    reader: PoolClientReader,
-    work: Arc<Mutex<Job>>,
+pub trait MessageHandler {
+    fn job_command(&mut self, job: Job);
+    fn error_reply(&mut self, id: RequestId, error: ErrorReply);
+    fn status_reply(&mut self, id: RequestId, status: String);
+    fn job_reply(&mut self, id: RequestId, job: Box<JobAssignment>);
 }
 
-impl PoolClient {
+pub struct PoolClient<H> {
+    writer: Arc<Mutex<PoolClientWriter>>,
+    reader: PoolClientReader,
+    handler: H,
+}
+
+impl<H: MessageHandler> PoolClient<H> {
+    pub fn connect<F, X>(cfg: &Config, agent: &str, make_handler: F) -> ClientResult<(Self, X)> where F: FnOnce(Job) -> (H, X) {
+        let (writer, work, reader) = connection::connect(
+            &cfg.address,
+            &cfg.login,
+            &cfg.pass,
+            agent,
+            cfg.keepalive_s.map(Duration::from_secs),
+        )?;
+        debug!("client connected, initial job: {:?}", &work);
+        let writer = Arc::new(Mutex::new(writer));
+        let (handler, x) = make_handler(work);
+        Ok((PoolClient { writer, reader, handler }, x))
+    }
+
+    pub fn write_handle(&self) -> Arc<Mutex<PoolClientWriter>> {
+        Arc::clone(&self.writer)
+    }
+
     fn handle(&mut self, event: PoolEvent<RequestId>) {
         match event {
-            PoolEvent::ClientCommand(c) => match c {
-                ClientCommand::Job(j) => {
-                    debug!("new job: {:?}", j);
-                    *self.work.lock().unwrap() = j;
-                }
-            },
-            PoolEvent::PoolReply { id: _id, error: Some(error), .. } => {
-                warn!(
-                    "received error: {:?}, assuming that indicates a stale share",
-                    error
-                );
-            }
-            PoolEvent::PoolReply {
-                id: _id,
-                error: None,
-                result: Some(result),
-            } => {
-                debug!("pool reply");
-                match result {
-                    PoolReply::Status { status } => {
-                        if status == "OK" {
-                            debug!("received status OK");
-                        } else {
-                            info!("received status {:?}, assuming that means OK", status);
-                        }
-                    }
-                    PoolReply::Job { .. } => {
-                        warn!("unexpected job reply...");
-                    }
-                };
-                // TODO
-            }
-            PoolEvent::PoolReply {
-                id: _id,
-                error: None,
-                result: None,
-            } => warn!("pool reply with no content"),
+            PoolEvent::ClientCommand(ClientCommand::Job(j)) => self.handler.job_command(j),
+            PoolEvent::PoolReply { id, error: Some(error), .. } => self.handler.error_reply(id, error),
+            PoolEvent::PoolReply { id, error: None, result: Some(PoolReply::Status { status }) } => self.handler.status_reply(id, status),
+            PoolEvent::PoolReply { id, error: None, result: Some(PoolReply::Job(job)) } => self.handler.job_reply(id, job),
+            PoolEvent::PoolReply { error: None, result: None, .. } => warn!("pool reply with no content")
         }
     }
 
-    fn run(mut self) -> ClientResult<()> {
+    /// Handle messages until the connection is closed.
+    pub fn run(mut self) -> ClientResult<()> {
         loop {
             if let Some(event) = self.reader.read()? {
                 self.handle(event);
@@ -87,27 +80,4 @@ impl PoolClient {
             }
         }
     }
-}
-
-pub fn run_thread(cfg: &Config, agent: &str) -> ClientResult<WorkSource> {
-    let (writer, work, reader) = connection::connect(
-        &cfg.address,
-        &cfg.login,
-        &cfg.pass,
-        agent,
-        cfg.keepalive_s.map(Duration::from_secs),
-    )?;
-    debug!("client connected, initial job: {:?}", &work);
-    let work = Arc::new(Mutex::new(work));
-    let writer = Arc::new(Mutex::new(writer));
-    let client = PoolClient {
-        writer: Arc::clone(&writer),
-        reader,
-        work: Arc::clone(&work),
-    };
-    thread::Builder::new()
-        .name("poolclient".into())
-        .spawn(move || client.run())
-        .unwrap();
-    Ok(WorkSource::new(work, writer))
 }

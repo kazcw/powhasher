@@ -73,7 +73,7 @@ where
         return Err(Error::custom("odd-length hex blob"));
     }
     (bytes_in
-        .exact_chunks(2)
+        .chunks_exact(2)
         .map(|ab| hex_to_nibble(ab[0]).and_then(|a| Ok(a << 4 | hex_to_nibble(ab[1])?)))
         .collect(): Result<Vec<_>, _>)
         .map_err(|_| Error::custom("non-hex char in input"))

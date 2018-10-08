@@ -1,7 +1,6 @@
 // copyright 2017 Kaz Wesley
 
-use crate::poolclient::messages::{Job, JobId};
-use crate::poolclient::connection::{ClientResult, PoolClientWriter};
+use crate::poolclient::{Job, JobId, ClientResult, PoolClientWriter};
 
 use std::sync::{Arc, Mutex};
 
