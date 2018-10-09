@@ -13,20 +13,21 @@
 // no allocs on hot paths anyway
 extern crate alloc_system;
 
-mod stats;
 mod worksource;
 
 use std::fs::File;
-use std::mem;
 use std::sync::{Arc, Mutex};
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::thread;
-use std::time::Duration;
+use std::time::{Instant, Duration};
 
 use cn_stratum::client::{PoolClient, MessageHandler, RequestId, Job, JobAssignment, ErrorReply};
 use crate::worksource::WorkSource;
 
 use log::*;
 use serde_derive::{Deserialize, Serialize};
+use core_affinity::CoreId;
+use byteorder::{ByteOrder, LE};
 
 const AGENT: &str = "pow#er/0.2.0";
 
@@ -93,49 +94,46 @@ fn main() {
         .into_iter()
         .enumerate()
         .map(|(i, w)| {
-            let (stat_updater, stat_reader) = stats::channel();
+            let hash_count = Arc::new(AtomicUsize::new(0));
+            let hash_counter = Arc::clone(&hash_count);
             let ws = worksource.clone();
             let core = core_ids[w.cpu as usize];
             debug!("starting worker{} with config: {:?}", i, &w);
             thread::Builder::new()
                 .name(format!("worker{}", i))
-                .spawn(move || run_worker(w, ws, stat_updater, core, i as u32, worker_count as u32))
+                .spawn(move || run_worker(w, ws, hash_count, core, i as u32, worker_count as u32))
                 .unwrap();
-            stat_reader
+            hash_counter
         })
         .collect();
 
-    let mut prev_stats: Vec<_> = workerstats.iter().map(|w| w.get()).collect();
-    let mut new_stats = Vec::new();
+    let mut prevstats: Vec<_> = workerstats.iter().map(|w| w.load(Ordering::Relaxed)).collect();
+    let start = Instant::now();
+    let mut prev_start = start;
+    let mut total_hashes = 0;
     loop {
         println!("worker stats (since last):");
+        let now = Instant::now();
+        let cur_dur = now - prev_start;
+        let total_dur = now - start;
+        prev_start = now;
         let mut cur_hashes = 0;
-        let mut cur_dur = Duration::new(0, 0);
-        let mut total_hashes = 0;
-        let mut total_dur = Duration::new(0, 0);
-        new_stats.clear();
-        new_stats.extend(workerstats.iter().map(|w| w.get()));
-        for (i, (new, old)) in new_stats.iter().zip(&prev_stats).enumerate() {
-            let hashes = new.hashes - old.hashes;
-            let runtime = new.runtime.checked_sub(old.runtime).unwrap();
-            let rate = (hashes as f32)
-                / ((runtime.as_secs() as f32) + (runtime.subsec_nanos() as f32) / 1_000_000_000.0);
-            println!("\t{}: {} H/s", i, rate);
-            cur_hashes += hashes;
-            cur_dur = cur_dur.checked_add(runtime).unwrap();
-            total_hashes += new.hashes;
-            total_dur = total_dur.checked_add(new.runtime).unwrap();
+        for (i, (prev, new)) in prevstats.iter_mut().zip(&workerstats).enumerate() {
+            let new = new.load(Ordering::Relaxed);
+            let cur = new - *prev;
+            println!("\t{}: {} H/s", i, (cur as f32) / dur_to_f32(&cur_dur));
+            cur_hashes += cur;
+            *prev = new;
         }
-        let cur_rate = ((workerstats.len() * cur_hashes) as f32)
-            / ((cur_dur.as_secs() as f32) + (cur_dur.subsec_nanos() as f32) / 1_000_000_000.0);
-        println!("\ttotal (since last): {} H/s", cur_rate);
-        let total_rate = ((workerstats.len() * total_hashes) as f32)
-            / ((total_dur.as_secs() as f32) + (total_dur.subsec_nanos() as f32) / 1_000_000_000.0);
-        println!("\ttotal (all time): {} H/s", total_rate);
-        mem::swap(&mut prev_stats, &mut new_stats);
-
+        total_hashes += cur_hashes;
+        println!("\ttotal (since last): {} H/s", (cur_hashes as f32) / dur_to_f32(&cur_dur));
+        println!("\ttotal (all time): {} H/s", (total_hashes as f32) / dur_to_f32(&total_dur));
         std::io::stdin().read_line(&mut String::new()).unwrap();
     }
+}
+
+fn dur_to_f32(dur: &Duration) -> f32 {
+    ((dur.as_secs() as f32) + (dur.subsec_nanos() as f32) / 1_000_000_000.0)
 }
 
 #[cfg(test)]
@@ -182,10 +180,6 @@ impl MessageHandler for Client {
     }
 }
 
-use crate::stats::StatUpdater;
-use core_affinity::CoreId;
-use byteorder::{ByteOrder, LE};
-
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct WorkerConfig {
@@ -193,10 +187,9 @@ pub struct WorkerConfig {
     hasher: cryptonight::HasherConfig,
 }
 
-pub fn run_worker(cfg: WorkerConfig, mut worksource: WorkSource, mut stat_updater: StatUpdater, core: CoreId, worker_id: u32, step: u32) -> ! {
+pub fn run_worker(cfg: WorkerConfig, mut worksource: WorkSource, hash_count: Arc<AtomicUsize>, core: CoreId, worker_id: u32, step: u32) -> ! {
     // TODO: CoreId error handling
     core_affinity::set_for_current(core);
-    stat_updater.reset();
     let (mut target, blob, mut algo) = worksource.get_new_work().unwrap();
     let start = (u32::from(blob[42]) << 24) + worker_id;
     let nonce_seq = (start..).step_by(step as usize);
@@ -211,7 +204,7 @@ pub fn run_worker(cfg: WorkerConfig, mut worksource: WorkSource, mut stat_update
             if LE::read_u64(&h[24..]) <= target {
                 ws.submit(&algo, n, &h).unwrap();
             }
-            stat_updater.log_hashes(1);
+            hash_count.fetch_add(1, Ordering::Relaxed);
             if let Some((newt, newb, newa)) = ws.get_new_work() {
                 hashes = cryptonight::hasher(&newa, &cfg.hasher, newb, nonce_seq.clone());
                 target = newt;
