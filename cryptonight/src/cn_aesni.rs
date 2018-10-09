@@ -31,7 +31,8 @@ extern "C" {
     );
 }
 
-pub fn mix(memory: &mut [i64x2; 1 << 17], from: &[i64x2], tweak: u64) {
+pub fn mix(memory: &mut [i64x2], from: &[i64x2], tweak: u64) {
+    assert_eq!(memory.len(), 1 << 17);
     unsafe {
         cn_mix_v1_x1(
             memory.as_mut_ptr() as *mut c_void,

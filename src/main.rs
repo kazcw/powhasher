@@ -14,6 +14,7 @@ use std::time::{Duration, Instant};
 use cn_stratum::client::{
     ErrorReply, Job, JobAssignment, MessageHandler, PoolClient, PoolClientWriter, RequestId,
 };
+use cryptonight::{Hasher, HasherConfig};
 
 use byteorder::{ByteOrder, LE};
 use core_affinity::CoreId;
@@ -141,7 +142,9 @@ fn dur_to_f32(dur: &Duration) -> f32 {
     ((dur.as_secs() as f32) + (dur.subsec_nanos() as f32) / 1_000_000_000.0)
 }
 
-pub struct Client { work: Arc<Work> }
+pub struct Client {
+    work: Arc<Work>,
+}
 
 impl Client {
     fn new(job: Job) -> Self {
@@ -196,7 +199,10 @@ impl Work {
         jid == JobId(self.job_id.load(Ordering::Relaxed))
     }
     pub fn current(&self) -> (JobId, Job) {
-        (JobId(self.job_id.load(Ordering::Acquire)), self.job.lock().unwrap().clone())
+        (
+            JobId(self.job_id.load(Ordering::Acquire)),
+            self.job.lock().unwrap().clone(),
+        )
     }
     pub fn set_current(&self, j: Job) {
         *self.job.lock().unwrap() = j;
@@ -208,7 +214,7 @@ impl Work {
 #[serde(deny_unknown_fields)]
 pub struct WorkerConfig {
     cpu: u32,
-    hasher: cryptonight::HasherConfig,
+    hasher: HasherConfig,
 }
 
 struct Worker {
@@ -221,23 +227,31 @@ struct Worker {
     step: u32,
 }
 
+const DEFAULT_ALGO: &str = "cn/1";
+
 impl Worker {
     fn run(self) -> ! {
         core_affinity::set_for_current(self.core);
+        let mut algo = DEFAULT_ALGO.to_owned();
         loop {
-            let (jid, job) = self.work.current();
-            let algo = job.algo().unwrap_or_else(|| "cn/1");
-            let start = (u32::from(job.blob()[42]) << 24) + self.worker_id;
-            let nonce_seq = (start..).step_by(self.step as usize);
-            let hashes =
-                cryptonight::hasher(algo, &self.cfg.hasher, job.blob().into(), nonce_seq.clone());
-            for (h, n) in hashes.zip(nonce_seq.clone()) {
-                if LE::read_u64(&h[24..]) <= job.target() {
-                    self.pool.lock().unwrap().submit(&job, n, &h).unwrap();
+            let mut hasher = Hasher::new(&algo, &self.cfg.hasher);
+            algo = loop {
+                let (jid, job) = self.work.current();
+                let new_algo = job.algo().unwrap_or_else(|| DEFAULT_ALGO);
+                if new_algo != algo {
+                    break new_algo.to_owned();
                 }
-                self.hash_count.fetch_add(1, Ordering::Relaxed);
-                if !self.work.is_current(jid) {
-                    break;
+                let start = (u32::from(job.blob()[42]) << 24) + self.worker_id;
+                let nonce_seq = (start..).step_by(self.step as usize);
+                let hashes = hasher.hashes(job.blob().into(), nonce_seq.clone());
+                for (h, n) in hashes.zip(nonce_seq.clone()) {
+                    if LE::read_u64(&h[24..]) <= job.target() {
+                        self.pool.lock().unwrap().submit(&job, n, &h).unwrap();
+                    }
+                    self.hash_count.fetch_add(1, Ordering::Relaxed);
+                    if !self.work.is_current(jid) {
+                        break;
+                    }
                 }
             }
         }
