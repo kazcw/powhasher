@@ -15,6 +15,7 @@ use blake::digest::Digest;
 use skein::digest::generic_array::typenum::U32;
 use skein::digest::generic_array::GenericArray;
 use std::arch::x86_64::__m128i as i64x2;
+use std::str::FromStr;
 use byteorder::{ByteOrder, LE};
 
 use self::mmap::Mmap;
@@ -42,14 +43,30 @@ pub struct HasherConfig {
     n: u32
 }
 
+#[derive(Debug)]
+pub struct UnknownAlgo{ name: Box<str> }
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+pub enum Algo {
+    Cn1
+}
+impl FromStr for Algo {
+    type Err = UnknownAlgo;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(match s {
+            "cn/1" => Algo::Cn1,
+            name => Err(UnknownAlgo{ name: name.to_owned().into_boxed_str() })?,
+        })
+    }
+}
+
 pub struct Hasher(Hasher_);
 enum Hasher_ {
     CryptoNight{ memory: Mmap<[i64x2; 1 << 17]> },
 }
 impl Hasher {
-    pub fn new(algo: &str, cfg: &HasherConfig) -> Self {
+    pub fn new(algo: Algo, cfg: &HasherConfig) -> Self {
         Hasher(match algo {
-            "cn/1" => match cfg.n {
+            Algo::Cn1 => match cfg.n {
                 1 => Hasher_::CryptoNight { memory: Mmap::default() },
                 //2 => Box::new(CryptoNight2::new(blob, noncer)),
                 _ => unimplemented!("unsupported configuration"),
@@ -88,11 +105,11 @@ impl Hasher {
 pub struct Hashes<'a> {
     memory: &'a mut [i64x2],
     blob: Box<[u8]>,
-    algo: Box<dyn Algo>,
+    algo: Box<dyn Impl>,
 }
 
 impl<'a> Hashes<'a> {
-    fn new(memory: &'a mut [i64x2], blob: Box<[u8]>, algo: Box<dyn Algo>) -> Self {
+    fn new(memory: &'a mut [i64x2], blob: Box<[u8]>, algo: Box<dyn Impl>) -> Self {
         Hashes { memory, blob, algo }
     }
 }
@@ -106,15 +123,14 @@ impl<'a> Iterator for Hashes<'a> {
     }
 }
 
-trait Algo {
+trait Impl {
     fn next_hash(&mut self, memory: &mut [i64x2], blob: &mut [u8]) -> GenericArray<u8, U32>;
 }
 
 #[derive(Default)]
 pub struct CryptoNight<Noncer> {
     noncer: Noncer,
-    state0: State,
-    state1: State,
+    state: (State, State),
     tweak: u64,
 }
 
@@ -122,8 +138,7 @@ impl<Noncer: Iterator<Item = u32>> CryptoNight<Noncer> {
     pub fn new(memory: &mut [i64x2], mut noncer: Noncer, blob: &mut [u8]) -> Self {
         set_nonce(blob, noncer.next().unwrap());
         let mut res = Self {
-            state0: State::default(),
-            state1: State::default(),
+            state: Default::default(),
             tweak: u64::default(),
             noncer,
         };
@@ -131,22 +146,22 @@ impl<Noncer: Iterator<Item = u32>> CryptoNight<Noncer> {
         res
     }
     fn transplode(&mut self, memory: &mut [i64x2], blob: &[u8]) -> GenericArray<u8, U32> {
-        self.state1 = State::from(sha3::Keccak256Full::digest(blob));
-        self.tweak = LE::read_u64(&blob[35..43]) ^ ((&self.state1).into(): &[u64; 25])[24];
+        self.state.1 = State::from(sha3::Keccak256Full::digest(blob));
+        self.tweak = LE::read_u64(&blob[35..43]) ^ ((&self.state.1).into(): &[u64; 25])[24];
         cn_aesni::transplode(
-            (&mut self.state0).into(),
+            (&mut self.state.0).into(),
             &mut memory[..],
-            (&self.state1).into(),
+            (&self.state.1).into(),
         );
-        let result = finalize(self.state0);
-        self.state0 = self.state1;
+        let result = finalize(self.state.0);
+        self.state.0 = self.state.1;
         result
     }
 }
 
-impl<Noncer: Iterator<Item = u32>> Algo for CryptoNight<Noncer> {
+impl<Noncer: Iterator<Item = u32>> Impl for CryptoNight<Noncer> {
     fn next_hash(&mut self, memory: &mut [i64x2], blob: &mut [u8]) -> GenericArray<u8, U32> {
-        cn_aesni::mix(memory, (&self.state0).into(), self.tweak);
+        cn_aesni::mix(memory, (&self.state.0).into(), self.tweak);
         set_nonce(blob, self.noncer.next().unwrap());
         self.transplode(memory, blob)
     }

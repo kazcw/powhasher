@@ -14,7 +14,7 @@ use std::time::{Duration, Instant};
 use cn_stratum::client::{
     ErrorReply, Job, JobAssignment, MessageHandler, PoolClient, PoolClientWriter, RequestId,
 };
-use cryptonight::{Hasher, HasherConfig};
+use cryptonight::{Algo, Hasher, HasherConfig};
 
 use byteorder::{ByteOrder, LE};
 use core_affinity::CoreId;
@@ -227,19 +227,19 @@ struct Worker {
     step: u32,
 }
 
-const DEFAULT_ALGO: &str = "cn/1";
+const DEFAULT_ALGO: Algo = Algo::Cn1;
 
 impl Worker {
     fn run(self) -> ! {
         core_affinity::set_for_current(self.core);
-        let mut algo = DEFAULT_ALGO.to_owned();
+        let mut algo = DEFAULT_ALGO;
         loop {
-            let mut hasher = Hasher::new(&algo, &self.cfg.hasher);
+            let mut hasher = Hasher::new(algo, &self.cfg.hasher);
             algo = loop {
                 let (jid, job) = self.work.current();
-                let new_algo = job.algo().unwrap_or_else(|| DEFAULT_ALGO);
+                let new_algo = job.algo().map(|x| x.parse().unwrap()).unwrap_or_else(|| DEFAULT_ALGO);
                 if new_algo != algo {
-                    break new_algo.to_owned();
+                    break new_algo;
                 }
                 let start = (u32::from(job.blob()[42]) << 24) + self.worker_id;
                 let nonce_seq = (start..).step_by(self.step as usize);
