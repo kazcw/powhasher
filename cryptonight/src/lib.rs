@@ -1,11 +1,7 @@
 // copyright 2017 Kaz Wesley
 
 #![feature(asm)]
-#![feature(ptr_internals)]
-#![feature(repr_simd)]
-#![feature(stdsimd)]
 #![feature(type_ascription)]
-#![feature(untagged_unions)]
 
 #[macro_use]
 extern crate serde_derive;
