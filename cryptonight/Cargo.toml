@@ -16,6 +16,7 @@ skein = { git = "git://github.com/kazcw/RustCrypto-hashes", branch = "master", v
 sha3 = { git = "git://github.com/kazcw/RustCrypto-hashes", branch = "master" }
 serde = "1"
 serde_derive = "1"
+byteorder = "1"
 
 [dev-dependencies]
 hex-literal = "0.1"

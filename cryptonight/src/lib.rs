@@ -19,6 +19,7 @@ use blake::digest::Digest;
 use skein::digest::generic_array::typenum::U32;
 use skein::digest::generic_array::GenericArray;
 use std::arch::x86_64::__m128i as i64x2;
+use byteorder::{ByteOrder, LE};
 
 use self::mmap::Mmap;
 use self::state::State;
@@ -35,17 +36,8 @@ fn finalize(mut data: State) -> GenericArray<u8, U32> {
     }
 }
 
-fn read_u64le(bytes: &[u8]) -> u64 {
-    u64::from(bytes[0]) | (u64::from(bytes[1]) << 8) | (u64::from(bytes[2]) << 16)
-        | (u64::from(bytes[3]) << 24) | (u64::from(bytes[4]) << 32) | (u64::from(bytes[5]) << 40)
-        | (u64::from(bytes[6]) << 48) | (u64::from(bytes[7]) << 56)
-}
-
 fn set_nonce(blob: &mut [u8], nonce: u32) {
-    blob[39] = nonce as u8;
-    blob[40] = (nonce >> 0x08) as u8;
-    blob[41] = (nonce >> 0x10) as u8;
-    blob[42] = (nonce >> 0x18) as u8;
+    LE::write_u32(&mut blob[39..43], nonce);
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -115,7 +107,7 @@ impl<Noncer: Iterator<Item = u32>> CryptoNight<Noncer> {
     fn transplode(&mut self) -> GenericArray<u8, U32> {
         set_nonce(&mut self.blob, self.noncer.next().unwrap());
         self.state1 = State::from(sha3::Keccak256Full::digest(&self.blob));
-        self.tweak = read_u64le(&self.blob[35..43]) ^ ((&self.state1).into(): &[u64; 25])[24];
+        self.tweak = LE::read_u64(&self.blob[35..43]) ^ ((&self.state1).into(): &[u64; 25])[24];
         cn_aesni::transplode(
             (&mut self.state0).into(),
             &mut self.memory[..],
@@ -187,7 +179,7 @@ impl<Noncer: Iterator<Item = u32>> CryptoNight2<Noncer> {
         for (st, tw) in self.state.iter_mut().zip(self.tweak.iter_mut()) {
             set_nonce(&mut self.blob, self.noncer.next().unwrap());
             st.1 = State::from(sha3::Keccak256Full::digest(&self.blob));
-            *tw = read_u64le(&self.blob[35..43]) ^ ((&st.1).into(): &[u64; 25])[24];
+            *tw = LE::read_u64(&self.blob[35..43]) ^ ((&st.1).into(): &[u64; 25])[24];
         }
         for (st, mem) in self.state.iter_mut().zip(self.memory.iter_mut()) {
             cn_aesni::transplode((&mut st.0).into(), &mut mem[..], (&st.1).into());
@@ -243,7 +235,7 @@ impl<Noncer: Iterator<Item = u32>> CryptoNightXtl<Noncer> {
     fn transplode(&mut self) -> GenericArray<u8, U32> {
         set_nonce(&mut self.blob, self.noncer.next().unwrap());
         self.state1 = State::from(sha3::Keccak256Full::digest(&self.blob));
-        self.tweak = read_u64le(&self.blob[35..43]) ^ ((&self.state1).into(): &[u64; 25])[24];
+        self.tweak = LE::read_u64(&self.blob[35..43]) ^ ((&self.state1).into(): &[u64; 25])[24];
         cn_aesni::transplode(
             (&mut self.state0).into(),
             &mut self.memory[..],
