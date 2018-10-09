@@ -218,17 +218,17 @@ impl Worker {
             let algo = job.algo().unwrap_or_else(|| "cn/1");
             let start = (u32::from(job.blob()[42]) << 24) + self.worker_id;
             let nonce_seq = (start..).step_by(self.step as usize);
-            let mut hashes =
-                cryptonight::hasher(algo, &self.cfg.hasher, job.blob().into(), nonce_seq.clone())
-                    .zip(nonce_seq.clone());
-            while {
-                let (h, n) = hashes.by_ref().next().unwrap();
+            let hashes =
+                cryptonight::hasher(algo, &self.cfg.hasher, job.blob().into(), nonce_seq.clone());
+            for (h, n) in hashes.zip(nonce_seq.clone()) {
                 if LE::read_u64(&h[24..]) <= job.target() {
                     self.pool.lock().unwrap().submit(&job, n, &h).unwrap();
                 }
                 self.hash_count.fetch_add(1, Ordering::Relaxed);
-                self.job_id.load(Ordering::Relaxed) == jid
-            } {}
+                if self.job_id.load(Ordering::Relaxed) != jid {
+                    break;
+                }
+            }
         }
     }
 }
