@@ -73,8 +73,7 @@ fn main() {
         AGENT,
         Client::new,
     ).unwrap();
-    let work = client.handler().job();
-    let job_id = client.handler().job_id();
+    let work = client.handler().work();
     let pool = client.write_handle();
     thread::Builder::new()
         .name("poolclient".into())
@@ -92,7 +91,6 @@ fn main() {
         let worker = Worker {
             cfg: w,
             hash_count,
-            job_id: Arc::clone(&job_id),
             work: Arc::clone(&work),
             pool: Arc::clone(&pool),
             core,
@@ -143,32 +141,23 @@ fn dur_to_f32(dur: &Duration) -> f32 {
     ((dur.as_secs() as f32) + (dur.subsec_nanos() as f32) / 1_000_000_000.0)
 }
 
-pub struct Client {
-    job: Arc<Mutex<Job>>,
-    job_id: Arc<AtomicUsize>,
-}
+pub struct Client { work: Arc<Work> }
 
 impl Client {
     fn new(job: Job) -> Self {
-        let job = Arc::new(Mutex::new(job));
-        let job_id = Arc::new(AtomicUsize::new(0));
-        Client { job, job_id }
+        let work = Arc::new(Work::new(job));
+        Client { work }
     }
 
-    fn job(&self) -> Arc<Mutex<Job>> {
-        Arc::clone(&self.job)
-    }
-
-    fn job_id(&self) -> Arc<AtomicUsize> {
-        Arc::clone(&self.job_id)
+    fn work(&self) -> Arc<Work> {
+        Arc::clone(&self.work)
     }
 }
 
 impl MessageHandler for Client {
     fn job_command(&mut self, j: Job) {
         debug!("new job: {:?}", j);
-        *self.job.lock().unwrap() = j;
-        self.job_id.fetch_add(1, Ordering::Relaxed);
+        self.work.set_current(j);
     }
 
     fn error_reply(&mut self, _id: RequestId, error: ErrorReply) {
@@ -191,6 +180,30 @@ impl MessageHandler for Client {
     }
 }
 
+#[derive(PartialEq, Eq, Copy, Clone)]
+pub struct JobId(usize);
+pub struct Work {
+    job_id: AtomicUsize,
+    job: Mutex<Job>,
+}
+impl Work {
+    pub fn new(job: Job) -> Self {
+        let job_id = AtomicUsize::new(0);
+        let job = Mutex::new(job);
+        Work { job_id, job }
+    }
+    pub fn is_current(&self, jid: JobId) -> bool {
+        jid == JobId(self.job_id.load(Ordering::Relaxed))
+    }
+    pub fn current(&self) -> (JobId, Job) {
+        (JobId(self.job_id.load(Ordering::Acquire)), self.job.lock().unwrap().clone())
+    }
+    pub fn set_current(&self, j: Job) {
+        *self.job.lock().unwrap() = j;
+        self.job_id.fetch_add(1, Ordering::Release);
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct WorkerConfig {
@@ -201,8 +214,7 @@ pub struct WorkerConfig {
 struct Worker {
     cfg: WorkerConfig,
     hash_count: Arc<AtomicUsize>,
-    job_id: Arc<AtomicUsize>,
-    work: Arc<Mutex<Job>>,
+    work: Arc<Work>,
     pool: Arc<Mutex<PoolClientWriter>>,
     core: CoreId,
     worker_id: u32,
@@ -213,8 +225,7 @@ impl Worker {
     fn run(self) -> ! {
         core_affinity::set_for_current(self.core);
         loop {
-            let jid = self.job_id.load(Ordering::Relaxed);
-            let job = self.work.lock().unwrap().clone();
+            let (jid, job) = self.work.current();
             let algo = job.algo().unwrap_or_else(|| "cn/1");
             let start = (u32::from(job.blob()[42]) << 24) + self.worker_id;
             let nonce_seq = (start..).step_by(self.step as usize);
@@ -225,7 +236,7 @@ impl Worker {
                     self.pool.lock().unwrap().submit(&job, n, &h).unwrap();
                 }
                 self.hash_count.fetch_add(1, Ordering::Relaxed);
-                if self.job_id.load(Ordering::Relaxed) != jid {
+                if !self.work.is_current(jid) {
                     break;
                 }
             }
