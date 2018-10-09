@@ -219,12 +219,10 @@ impl Worker {
             let start = (u32::from(job.blob()[42]) << 24) + self.worker_id;
             let nonce_seq = (start..).step_by(self.step as usize);
             let mut hashes =
-                cryptonight::hasher(algo, &self.cfg.hasher, job.blob().into(), nonce_seq.clone());
-            let mut nonces = nonce_seq.clone();
+                cryptonight::hasher(algo, &self.cfg.hasher, job.blob().into(), nonce_seq.clone())
+                    .zip(nonce_seq.clone());
             while {
-                let mut h = [0u8; 32];
-                h.copy_from_slice(&hashes.by_ref().next().unwrap());
-                let n = nonces.by_ref().next().unwrap();
+                let (h, n) = hashes.by_ref().next().unwrap();
                 if LE::read_u64(&h[24..]) <= job.target() {
                     self.pool.lock().unwrap().submit(&job, n, &h).unwrap();
                 }

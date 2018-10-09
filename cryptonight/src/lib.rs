@@ -60,9 +60,11 @@ pub trait Hasher<Noncer> {
 }
 
 impl<Noncer> Iterator for Hasher<Noncer> {
-    type Item = GenericArray<u8, U32>;
+    type Item = [u8; 32];
     fn next(&mut self) -> Option<Self::Item> {
-        Some(self.next_hash())
+        let mut h = [0u8; 32];
+        h.copy_from_slice(&self.next_hash());
+        Some(h)
     }
 }
 
