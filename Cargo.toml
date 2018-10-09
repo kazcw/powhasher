@@ -16,8 +16,8 @@ env_logger = "0.5"
 log = "0.4"
 clap = "2"
 
-[dependencies.cryptonight]
-path = "cryptonight"
+[dependencies.yellowsun]
+path = "../yellowsun"
 version = "0.1.0"
 
 [profile.release]

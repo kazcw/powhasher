@@ -14,7 +14,7 @@ use std::time::{Duration, Instant};
 use cn_stratum::client::{
     ErrorReply, Job, JobAssignment, MessageHandler, PoolClient, PoolClientWriter, RequestId,
 };
-use cryptonight::{Algo, Hasher, HasherConfig};
+use yellowsun::{Algo, Hasher, HasherConfig};
 
 use byteorder::{ByteOrder, LE};
 use core_affinity::CoreId;
