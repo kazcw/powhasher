@@ -147,7 +147,7 @@ dependencies = [
 
 [[package]]
 name = "cn-stratum"
-version = "0.3.0"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "arrayvec 0.4.7 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -340,7 +340,7 @@ version = "0.2.0"
 dependencies = [
  "byteorder 1.2.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "clap 2.32.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "cn-stratum 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cn-stratum 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "core_affinity 0.5.9 (registry+https://github.com/rust-lang/crates.io-index)",
  "cryptonight 0.1.0",
  "env_logger 0.5.13 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -643,7 +643,7 @@ dependencies = [
 "checksum cc 1.0.25 (registry+https://github.com/rust-lang/crates.io-index)" = "f159dfd43363c4d08055a07703eb7a3406b0dac4d0584d96965a3262db3c9d16"
 "checksum cfg-if 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)" = "0c4e7bb64a8ebb0d856483e1e682ea3422f883c5f5615a90d51a2c82fe87fdd3"
 "checksum clap 2.32.0 (registry+https://github.com/rust-lang/crates.io-index)" = "b957d88f4b6a63b9d70d5f454ac8011819c6efa7727858f458ab71c756ce2d3e"
-"checksum cn-stratum 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)" = "29ad9509a6b1284ea09f64396ce7bef5718a6e3eee7c26244a71c585ad9beb0b"
+"checksum cn-stratum 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)" = "2498437be37035980a39cfabd5eb53c05e87499fd69d28f3811489db854757e4"
 "checksum core_affinity 0.5.9 (registry+https://github.com/rust-lang/crates.io-index)" = "6d162c6e463c31dbf78fefa99d042156c1c74d404e299cfe3df2923cb857595b"
 "checksum digest 0.7.6 (registry+https://github.com/rust-lang/crates.io-index)" = "03b072242a8cbaf9c145665af9d250c59af3b958f83ed6824e13533cf76d5b90"
 "checksum env_logger 0.5.13 (registry+https://github.com/rust-lang/crates.io-index)" = "15b0a4d2e39f8420210be8b27eeda28029729e2fd4291019455016c348240c38"

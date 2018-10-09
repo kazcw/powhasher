@@ -6,7 +6,7 @@ license = "MIT/Apache-2.0"
 edition = "2018"
 
 [dependencies]
-cn-stratum = "0.3.0"
+cn-stratum = "0.4.0"
 byteorder = "1.2"
 core_affinity = "0.5"
 serde = "1"
