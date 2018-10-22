@@ -227,7 +227,7 @@ struct Worker {
     step: u32,
 }
 
-const DEFAULT_ALGO: Algo = Algo::Cn1;
+const DEFAULT_ALGO: Algo = Algo::Cn2;
 
 impl Worker {
     fn run(self) -> ! {
