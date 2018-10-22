@@ -14,7 +14,7 @@ use std::time::{Duration, Instant};
 use cn_stratum::client::{
     ErrorReply, Job, JobAssignment, MessageHandler, PoolClient, PoolClientWriter, RequestId,
 };
-use yellowsun::{Algo, Hasher, HasherConfig};
+use yellowsun::{Algo, Hasher};
 
 use byteorder::{ByteOrder, LE};
 use core_affinity::CoreId;
@@ -36,7 +36,7 @@ pub struct ClientConfig {
 #[serde(deny_unknown_fields)]
 struct Config {
     pub pool: ClientConfig,
-    pub workers: Vec<WorkerConfig>,
+    pub cores: Vec<u32>,
 }
 
 fn main() {
@@ -57,10 +57,11 @@ fn main() {
                 .long("config")
                 .value_name("FILE")
                 .help("Sets a custom config file")
+                .required(true)
                 .takes_value(true),
         ).get_matches();
 
-    let cfg: Config = File::open(args.value_of("config").unwrap_or("./config.json"))
+    let cfg: Config = File::open(args.value_of("config").unwrap())
         .map(serde_json::from_reader)
         .unwrap()
         .unwrap();
@@ -82,15 +83,14 @@ fn main() {
         .unwrap();
 
     let core_ids = core_affinity::get_core_ids().unwrap();
-    let worker_count = cfg.workers.len();
-    let mut workerstats = Vec::with_capacity(cfg.workers.len());
-    for (i, w) in cfg.workers.into_iter().enumerate() {
+    let worker_count = cfg.cores.len();
+    let mut workerstats = Vec::with_capacity(cfg.cores.len());
+    for (i, w) in cfg.cores.into_iter().enumerate() {
         let hash_count = Arc::new(AtomicUsize::new(0));
         workerstats.push(Arc::clone(&hash_count));
-        let core = core_ids[w.cpu as usize];
-        debug!("starting worker{} with config: {:?}", i, &w);
+        let core = core_ids[w as usize];
+        debug!("starting worker{} on core {:?}", i, w);
         let worker = Worker {
-            cfg: w,
             hash_count,
             work: Arc::clone(&work),
             pool: Arc::clone(&pool),
@@ -210,15 +210,7 @@ impl Work {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct WorkerConfig {
-    cpu: u32,
-    hasher: HasherConfig,
-}
-
 struct Worker {
-    cfg: WorkerConfig,
     hash_count: Arc<AtomicUsize>,
     work: Arc<Work>,
     pool: Arc<Mutex<PoolClientWriter>>,
@@ -234,7 +226,7 @@ impl Worker {
         core_affinity::set_for_current(self.core);
         let mut algo = DEFAULT_ALGO;
         loop {
-            let mut hasher = Hasher::new(algo, &self.cfg.hasher);
+            let mut hasher = Hasher::new(algo);
             algo = loop {
                 let (jid, job) = self.work.current();
                 let new_algo = job.algo().map(|x| x.parse().unwrap()).unwrap_or_else(|| DEFAULT_ALGO);
