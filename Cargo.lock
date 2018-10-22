@@ -60,9 +60,9 @@ version = "1.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
-name = "blake"
+name = "blake-hash"
 version = "0.2.0"
-source = "git+git://github.com/kazcw/RustCrypto-hashes#ca8296b30496618625ec705a065f4cb60f25ecc2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "block-buffer 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "digest 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -307,7 +307,7 @@ dependencies = [
  "serde 1.0.79 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_derive 1.0.79 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_json 1.0.28 (registry+https://github.com/rust-lang/crates.io-index)",
- "yellowsun 0.1.0",
+ "yellowsun 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -400,9 +400,9 @@ dependencies = [
 ]
 
 [[package]]
-name = "sha3"
+name = "sha3-plus"
 version = "0.8.1"
-source = "git+git://github.com/kazcw/RustCrypto-hashes#ca8296b30496618625ec705a065f4cb60f25ecc2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "block-buffer 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "byte-tools 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -412,14 +412,14 @@ dependencies = [
 ]
 
 [[package]]
-name = "skein"
+name = "skein-hash"
 version = "0.3.0"
-source = "git+git://github.com/kazcw/RustCrypto-hashes#ca8296b30496618625ec705a065f4cb60f25ecc2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "block-buffer 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "block-padding 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "digest 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "threefish 0.3.0 (git+git://github.com/kazcw/RustCrypto-block-ciphers?branch=threefish)",
+ "threefish-cipher 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -493,9 +493,9 @@ dependencies = [
 ]
 
 [[package]]
-name = "threefish"
+name = "threefish-cipher"
 version = "0.3.0"
-source = "git+git://github.com/kazcw/RustCrypto-block-ciphers?branch=threefish#07b76a6f3d48eca4ec292a541206b6281c6483c2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "block-cipher-trait 0.6.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "byteorder 1.2.6 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -586,15 +586,16 @@ dependencies = [
 [[package]]
 name = "yellowsun"
 version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "blake 0.2.0 (git+git://github.com/kazcw/RustCrypto-hashes)",
+ "blake-hash 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "byteorder 1.2.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "groestl-aesni 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "jh-x86_64 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "keccak 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.43 (registry+https://github.com/rust-lang/crates.io-index)",
- "sha3 0.8.1 (git+git://github.com/kazcw/RustCrypto-hashes)",
- "skein 0.3.0 (git+git://github.com/kazcw/RustCrypto-hashes)",
+ "sha3-plus 0.8.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "skein-hash 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [metadata]
@@ -605,7 +606,7 @@ dependencies = [
 "checksum backtrace 0.3.9 (registry+https://github.com/rust-lang/crates.io-index)" = "89a47830402e9981c5c41223151efcced65a0510c13097c769cede7efb34782a"
 "checksum backtrace-sys 0.1.24 (registry+https://github.com/rust-lang/crates.io-index)" = "c66d56ac8dabd07f6aacdaf633f4b8262f5b3601a810a0dcddffd5c22c69daa0"
 "checksum bitflags 1.0.4 (registry+https://github.com/rust-lang/crates.io-index)" = "228047a76f468627ca71776ecdebd732a3423081fcf5125585bcd7c49886ce12"
-"checksum blake 0.2.0 (git+git://github.com/kazcw/RustCrypto-hashes)" = "<none>"
+"checksum blake-hash 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "4d218558dbce3a929ff02b6c12a22f4866afb46484d57a2fe2ad3ed358b90b6a"
 "checksum block-buffer 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)" = "49665c62e0e700857531fa5d3763e91b539ff1abeebd56808d378b495870d60d"
 "checksum block-cipher-trait 0.6.1 (registry+https://github.com/rust-lang/crates.io-index)" = "30668a4dc25ca695ad6f4c4734b96b0a4414a87158eefeec04155bcef580a3de"
 "checksum block-padding 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "75bc2cfa52dc218b47ea000b15e6e5d00ca2f831db31e41592383c14d8802907"
@@ -646,8 +647,8 @@ dependencies = [
 "checksum serde 1.0.79 (registry+https://github.com/rust-lang/crates.io-index)" = "84257ccd054dc351472528c8587b4de2dbf0dc0fe2e634030c1a90bfdacebaa9"
 "checksum serde_derive 1.0.79 (registry+https://github.com/rust-lang/crates.io-index)" = "31569d901045afbff7a9479f793177fe9259819aff10ab4f89ef69bbc5f567fe"
 "checksum serde_json 1.0.28 (registry+https://github.com/rust-lang/crates.io-index)" = "d30ec34ac923489285d24688c7a9c0898d16edff27fc1f1bd854edeff6ca3b7f"
-"checksum sha3 0.8.1 (git+git://github.com/kazcw/RustCrypto-hashes)" = "<none>"
-"checksum skein 0.3.0 (git+git://github.com/kazcw/RustCrypto-hashes)" = "<none>"
+"checksum sha3-plus 0.8.1 (registry+https://github.com/rust-lang/crates.io-index)" = "40c0289983b7195d4f47e1af832624df60c711f4ad8a900b17cb171c5d9b3317"
+"checksum skein-hash 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)" = "cd64991448e6a411a2071b293402ee6dd423afcaffa45a0ee406be342bc6dfca"
 "checksum strsim 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)" = "bb4f380125926a99e52bc279241539c018323fab05ad6368b56f93d9369ff550"
 "checksum syn 0.14.9 (registry+https://github.com/rust-lang/crates.io-index)" = "261ae9ecaa397c42b960649561949d69311f08eeaea86a65696e6e46517cf741"
 "checksum syn 0.15.4 (registry+https://github.com/rust-lang/crates.io-index)" = "9056ebe7f2d6a38bc63171816fd1d3430da5a43896de21676dc5c0a4b8274a11"
@@ -656,7 +657,7 @@ dependencies = [
 "checksum termion 1.5.1 (registry+https://github.com/rust-lang/crates.io-index)" = "689a3bdfaab439fd92bc87df5c4c78417d3cbe537487274e9b0b2dce76e92096"
 "checksum textwrap 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)" = "307686869c93e71f94da64286f9a9524c0f308a9e1c87a583de8e9c9039ad3f6"
 "checksum thread_local 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)" = "c6b53e329000edc2b34dbe8545fd20e55a333362d0a321909685a19bd28c3f1b"
-"checksum threefish 0.3.0 (git+git://github.com/kazcw/RustCrypto-block-ciphers?branch=threefish)" = "<none>"
+"checksum threefish-cipher 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)" = "1224407f69183f0fcd8f33acaf1ea3f1784076512ecd2615117a855b65b858f0"
 "checksum typenum 1.10.0 (registry+https://github.com/rust-lang/crates.io-index)" = "612d636f949607bdf9b123b4a6f6d966dedf3ff669f7f045890d3a4a73948169"
 "checksum ucd-util 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "fd2be2d6639d0f8fe6cdda291ad456e23629558d466e2789d2c3e9892bda285d"
 "checksum unicode-width 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)" = "882386231c45df4700b275c7ff55b6f3698780a650026380e72dabe76fa46526"
@@ -671,3 +672,4 @@ dependencies = [
 "checksum winapi-util 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "afc5508759c5bf4285e61feb862b6083c8480aec864fa17a81fdec6f69b461ab"
 "checksum winapi-x86_64-pc-windows-gnu 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)" = "712e227841d057c1ee1cd2fb22fa7e5a5461ae8e48fa2ca79ec42cfc1931183f"
 "checksum wincolor 1.0.1 (registry+https://github.com/rust-lang/crates.io-index)" = "561ed901ae465d6185fa7864d63fbd5720d0ef718366c9a4dc83cf6170d7e9ba"
+"checksum yellowsun 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "6c99f1e6494c2cc591c840f22b08140c1a8c228816ac817270c672f79e7e34b2"

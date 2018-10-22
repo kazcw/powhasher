@@ -4,8 +4,11 @@ version = "0.2.0"
 authors = ["Kaz Wesley <keziahw@gmail.com>"]
 license = "MIT/Apache-2.0"
 edition = "2018"
+description = "CryptoNight miner for Monero and other CryptoNote coins "
+repository = "https://github.com/kazcw/powhasher"
 
 [dependencies]
+yellowsun = "0.1.0"
 cn-stratum = "0.4.0"
 byteorder = "1.2"
 core_affinity = "0.5"
@@ -15,10 +18,6 @@ serde_json = "1"
 env_logger = "0.5"
 log = "0.4"
 clap = "2"
-
-[dependencies.yellowsun]
-path = "../yellowsun"
-version = "0.1.0"
 
 [profile.release]
 panic = "abort"
