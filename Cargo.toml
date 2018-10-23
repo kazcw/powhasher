@@ -1,6 +1,6 @@
 [package]
 name = "powhasher"
-version = "0.2.0"
+version = "0.2.1"
 authors = ["Kaz Wesley <keziahw@gmail.com>"]
 license = "MIT/Apache-2.0"
 edition = "2018"
@@ -8,7 +8,7 @@ description = "CryptoNight miner for Monero and other CryptoNote coins "
 repository = "https://github.com/kazcw/powhasher"
 
 [dependencies]
-yellowsun = "0.1.0"
+yellowsun = "0.1.1"
 cn-stratum = "0.4.0"
 byteorder = "1.2"
 core_affinity = "0.5"
