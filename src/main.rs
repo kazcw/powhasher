@@ -228,20 +228,25 @@ impl Worker {
         loop {
             let mut hasher = Hasher::new(algo);
             algo = loop {
+                trace!("getting work");
                 let (jid, job) = self.work.current();
                 let new_algo = job.algo().map(|x| x.parse().unwrap()).unwrap_or_else(|| DEFAULT_ALGO);
                 if new_algo != algo {
+                    debug!("new algo: {:?}", new_algo);
                     break new_algo;
                 }
+                trace!("same algo ({:?})", new_algo);
                 let start = (u32::from(job.blob()[42]) << 24) + self.worker_id;
                 let nonce_seq = (start..).step_by(self.step as usize);
                 let hashes = hasher.hashes(job.blob().into(), nonce_seq.clone());
                 for (h, n) in hashes.zip(nonce_seq.clone()) {
                     if LE::read_u64(&h[24..]) <= job.target() {
+                        debug!("submitting share");
                         self.pool.lock().unwrap().submit(&job, n, &h).unwrap();
                     }
                     self.hash_count.fetch_add(1, Ordering::Relaxed);
                     if !self.work.is_current(jid) {
+                        trace!("work is outdated");
                         break;
                     }
                 }
