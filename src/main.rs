@@ -14,7 +14,7 @@ use std::time::{Duration, Instant};
 use cn_stratum::client::{
     ErrorReply, Job, JobAssignment, MessageHandler, PoolClient, PoolClientWriter, RequestId,
 };
-use yellowsun::{Algo, Hasher};
+use yellowsun::{Algo, AllocPolicy, Hasher};
 
 use byteorder::{ByteOrder, LE};
 use core_affinity::CoreId;
@@ -59,6 +59,10 @@ fn main() {
                 .help("Sets a custom config file")
                 .required(true)
                 .takes_value(true),
+        ).arg(
+            clap::Arg::with_name("allow-slow-mem")
+                .long("allow-slow-mem")
+                .help("Continue even if hugepages are not available (SLOW!)"),
         ).get_matches();
 
     let cfg: Config = File::open(args.value_of("config").unwrap())
@@ -66,6 +70,13 @@ fn main() {
         .unwrap()
         .unwrap();
     debug!("config: {:?}", &cfg);
+
+    let alloc_policy = if args.is_present("allow-slow-mem") {
+        warn!("Slow memory enabled! Performance may be poor.");
+        AllocPolicy::AllowSlow
+    } else {
+        AllocPolicy::RequireFast
+    };
 
     let client = PoolClient::connect(
         &cfg.pool.address,
@@ -97,6 +108,7 @@ fn main() {
             core,
             worker_id: i as u32,
             step: worker_count as u32,
+            alloc_policy,
         };
         thread::Builder::new()
             .name(format!("worker{}", i))
@@ -217,6 +229,7 @@ struct Worker {
     core: CoreId,
     worker_id: u32,
     step: u32,
+    alloc_policy: AllocPolicy,
 }
 
 const DEFAULT_ALGO: Algo = Algo::Cn2;
@@ -226,11 +239,14 @@ impl Worker {
         core_affinity::set_for_current(self.core);
         let mut algo = DEFAULT_ALGO;
         loop {
-            let mut hasher = Hasher::new(algo);
+            let mut hasher = Hasher::new(algo, self.alloc_policy);
             algo = loop {
                 trace!("getting work");
                 let (jid, job) = self.work.current();
-                let new_algo = job.algo().map(|x| x.parse().unwrap()).unwrap_or_else(|| DEFAULT_ALGO);
+                let new_algo = job
+                    .algo()
+                    .map(|x| x.parse().unwrap())
+                    .unwrap_or_else(|| DEFAULT_ALGO);
                 if new_algo != algo {
                     debug!("new algo: {:?}", new_algo);
                     break new_algo;
