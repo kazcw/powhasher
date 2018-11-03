@@ -1,10 +1,5 @@
 // copyright 2017 Kaz Wesley
 
-#![feature(alloc_system)]
-
-// no allocs on hot paths anyway
-extern crate alloc_system;
-
 use std::fs::File;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
