@@ -1,6 +1,7 @@
 // copyright 2017 Kaz Wesley
 
 use std::fs::File;
+use std::io::BufRead;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 use std::thread;
@@ -118,6 +119,8 @@ fn main() {
     let start = Instant::now();
     let mut prev_start = start;
     let mut total_hashes = 0;
+    let stdin = std::io::stdin();
+    let mut await_input = stdin.lock().lines();
     loop {
         println!("worker stats (since last):");
         let now = Instant::now();
@@ -141,7 +144,7 @@ fn main() {
             "\ttotal (all time): {} H/s",
             (total_hashes as f32) / dur_to_f32(&total_dur)
         );
-        std::io::stdin().read_line(&mut String::new()).unwrap();
+        await_input.next();
     }
 }
 
@@ -241,7 +244,7 @@ impl Worker {
                 let new_algo = job
                     .algo()
                     .map(|x| x.parse().unwrap())
-                    .unwrap_or_else(|| DEFAULT_ALGO);
+                    .unwrap_or(DEFAULT_ALGO);
                 if new_algo != algo {
                     debug!("new algo: {:?}", new_algo);
                     break new_algo;
